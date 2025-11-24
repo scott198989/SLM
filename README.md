@@ -1,350 +1,76 @@
-# 🧠 HAVOC-7B / SIGMA-7B  
-### A From-Scratch 7B Specialist Model for Math, Statistics, Six Sigma, DOE, SPC, and Process Engineering
+# HAVOC-7B / SIGMA-7B Engineering Base
 
-Welcome to **HAVOC-7B** (and the upcoming **SIGMA-7B**).  
-This repository contains all scaffolding, architecture, tooling, and reasoning infrastructure required to build a **from-scratch, domain-specialist 7B transformer** — **but NOT the training code or weights yet**.
+This repository provides the scaffolding for a domain-specialized ~7B decoder-only transformer plus the Scott Reasoning Stack (SRS-7B) and supporting tooling. It includes model definitions, tokenizer pipeline, data plumbing, math/statistics tools, a RAG layer, and the multi-stage SRS orchestrator. **Training loops and real weights are intentionally out of scope for now.**
 
-HAVOC-7B is designed to punch far above its size through:
+## Repository Layout
 
-- A custom 7B transformer architecture  
-- A domain-aware tokenizer  
-- External math/stats/DOE/SPC tools  
-- Retrieval-augmented reasoning (RAG)  
-- A multi-stage reasoning framework (SRS-7B)
-
-Think of it as a **math/stats/engineering sniper rifle**, not a general chatbot.
-
----
-
-## 🔥 Project Goals
-
-HAVOC-7B aims to:
-
-- Outperform larger general models in **math, statistics, engineering, DOE, SPC, and Six Sigma**  
-- Serve as a **local, offline specialist assistant**  
-- Showcase how a small model + the right scaffolding can rival much larger models  
-- Train exclusively on:
-  - textbooks  
-  - engineering/physics notes  
-  - open datasets  
-  - statistical and DOE handbooks  
-  - domain DSLs  
-  - light general text  
-
-This is a **true from-scratch model** — no LLaMA/Qwen checkpoints.
-
----
-
-## 🏗️ Repository Structure
-
-```bash
+```
 src/
-havoc_core/
-havoc_data/
-havoc_tools/
-havoc_rag/
-havoc_srs/
-havoc_cli/
-
-docs/
-AGENTS.md
-REASONING.md
-MODEL.md
-TOKENIZER.md
-DATA.md
-
-configs/
-model/
-data/
-tools/
-srs/
-rag/
-
-tests/
-scripts/
-README.md
+  havoc_core/        # configs, model architecture, tokenizer tooling
+  havoc_data/        # data sources, normalization, dataset abstractions
+  havoc_tools/       # math/stats engine and DOE/SPC DSL executor
+  havoc_rag/         # embedding wrapper, vector index, retrieval API
+  havoc_srs/         # MODE→GROUND→PLAN→EXECUTE→ARGUE→ARBITER→AUDIT→ANSWER
+  havoc_eval/        # benchmark registry and evaluation harness
+  havoc_cli/         # CLI entrypoints
+configs/             # sample YAML configs for model, data, tools, RAG, SRS
+scripts/             # helper scripts (dev checklist, demo)
+tests/               # smoke/unit tests
 ```
 
-
-**src/** contains the code.  
-**docs/** contains specifications.  
-**configs/** holds structured configuration.  
-**tests/** contains unit tests.  
-**scripts/** contains dev tools.
-
----
-
-## 🧬 1. HAVOC-7B Architecture
-
-A modern 7B decoder-only transformer:
-
-- **32 layers**  
-- **d_model = 4096**  
-- **32 attention heads**  
-- **head_dim = 128**  
-- **SwiGLU MLP (≈11008 dim)**  
-- **Grouped-Query Attention (GQA)**  
-- **RMSNorm**  
-- **RoPE positional encoding**  
-- **4k–8k context**
-
-Architecture files:
-
-- `src/havoc_core/model/transformer.py`  
-- `src/havoc_core/model/blocks.py`  
-- `src/havoc_core/config.py`
-
----
-
-## ✂️ 2. Custom Tokenizer (Domain-Aware)
-
-Tokenizer target size: **70k–80k**.
-
-Training corpus includes:
-
-- Statistics textbooks  
-- DOE manuals (Box-Behnken, Taguchi, factorial designs)  
-- Six Sigma / SPC handbooks  
-- Engineering and physics notes  
-- Symbolic math  
-- Light general text  
-
-Preserves domain terms as whole tokens, e.g.:
-
-- `ANOVA`, `p-value`, `Cpk`, `Ppk`  
-- `factorial_doE`, `control_chart`  
-- Unicode math symbols: `µ`, `σ`, `Σ`, `∂`, etc.
-
-Special DSL tokens such as:
-
-- `RUN_TTEST`  
-- `DESIGN_DOE`  
-- `CHECK_SPC`  
-- `ALPHA_0_05`
-
-Tokenizer code lives in:
-
-- `src/havoc_core/tokenizer/`
-
----
-
-## ⚙️ 3. Tools Layer (Math/Stats/DOE/SPC Engine)
-
-HAVOC-7B does not guess numeric answers.  
-It writes code → tools execute → model interprets.
-
-Tools include:
-
-- NumPy  
-- SciPy  
-- SymPy  
-- statsmodels  
-- custom DOE/SPC routines
-
-Examples:
-
-```python
-run_ttest()
-run_anova()
-fit_regression()
-evaluate_doe()
-```
-
-### Located in:
-
-`src/havoc_tools/python_math/`
-
-`src/havoc_tools/dsl/`
-
-### 🔎 4. RAG Layer
-
-The model accesses external references:
-
-- PDFs
-
-- textbooks
-
-- engineering notes
-
-- statistical formulas
-
-- DOE/SPC theory
-
-### Components:
-
-- Embedding model wrapper
-
-- Vector index (FAISS or pluggable)
-
-- Retrieval interface
-
-### Located in:
-
-`src/havoc_rag/`
-
-### 🧠 5. SRS-7B — Scott Reasoning Stack
-
-This is the reasoning engine behind HAVOC-7B.
-
-- MODE → GROUND → PLAN → EXECUTE → ARGUE → ARBITER → AUDIT → ANSWER
-
-### MODE
-
-- Classifies domain, difficulty, risk.
-
-### GROUND
-
-- Retrieve evidence through RAG.
-
-### PLAN
-
-- Produce structured steps + tool definitions.
-
-### EXECUTE
-
-- Run math/statistics tools & DSL commands.
-
-### ARGUE
-
-- Generate PRO and CON chains for high-risk tasks.
-
-### ARBITER
-
-- Decide outcome based on tool results + arguments.
-
-### AUDIT
-
-- Self-attack: check assumptions, errors, logic.
-
-### ANSWER
-
-- Final structured output with confidence & caveats.
-
-Code: `src/havoc_srs/`
-
-### 📊 6. Benchmark System
-
-Benchmark suites will test:
-
-- Pure math
-
-- Probability/statistics
-
-- ANOVA/regression
-
-- DOE design + interpretation
-
-- SPC / capability analysis
-
-- Materials/process engineering
-
-Three levels:
-
-- Base model
-
-- Model + tools
-
-- Full SRS-7B pipeline
-
-Located in:
-
-`src/havoc_eval/`
-
-### 🧩 7. Project Status
-✔️ Completed / Scaffolded
-
-- Repo layout
-
-- Architecture definitions
-
-- Tokenizer design
-
-- Tools/DSL structure
-
-- RAG interfaces
-
-- SRS pipeline design
-
-### 🟡 Work in Progress
-
-- Implementing modules
-
-Adding tests
-
-- Writing detailed docs
-
-### ⛔ Not Started Yet
-
-- Model initialization
-
-- Tokenizer training
-
-- Pretraining
-
-- Fine-tuning
-
-- Checkpoints
-
-- Distributed training setup
-
-### 🏁 8. How to Use This Repo
-
-For now:
-
-- Explore the scaffolding
-
-- Test the orchestrator with dummy data
-
-- Customize configs
-
-- Fill in tools and reasoning components
-
-- Once scaffolding is complete:
-
-- Train tokenizer
-
-- Build dataset
-
-- Begin pretraining (separate repo or directory)
-
-- Insert trained weights into HAVOC-7B
-
-- Enable full SRS-7B reasoning
-
-### 🚀 9. Why HAVOC-7B Will Outperform Larger Models
-
-- Domain-aware tokenizer
-
-- External numeric tools
-
-- Retrieval-backed reasoning
-
-- Explicit multi-stage logic
-
-- Built-in argument attack/defense
-
-- Structured uncertainty
-
-- Engineering DSLs
-
-- Training on specialist corpora
-
-HAVOC-7B doesn’t aim to be universal —
-it aims to dominate its chosen domains.
-
-### 🤝 10. Contributing
-
-Codex 5.1 is the automated engineer for this project.
-Human PRs should follow:
-
-- modular code
-
-- strong typing
-
-- tests
-
-- clear comments
-
-- no training-related code here
-
-- follow the docs in `/docs/`
+## Core Model (HAVOC-7B)
+- Decoder-only transformer: 32 layers, d_model=4096, 32 heads, head_dim=128, SwiGLU MLP (~11008).
+- Grouped-Query Attention with RoPE and RMSNorm everywhere.
+- Defined in `src/havoc_core/model/transformer.py` and `src/havoc_core/model/blocks.py` with configuration in `src/havoc_core/config.py`.
+- Provides forward pass, KV-cache support, simple greedy `generate`, and config serialization hooks.
+
+## Tokenizer Pipeline
+- SentencePiece-based trainer (`src/havoc_core/tokenizer/train_tokenizer.py`) with normalization helpers and domain DSL tokens registered via `vocab_utils.py`.
+- Target vocab size ~70–80k; reserved tokens for DSL and SRS markers.
+- Returns metadata describing special and domain tokens; no trained artifacts committed.
+
+## Data Pipeline
+- `havoc_data.sources` describes weighted data sources.
+- `havoc_data.preprocess` normalizes whitespace and engineering/math symbols.
+- `havoc_data.dataset` offers a PyTorch-style causal LM dataset with padding to configured sequence length.
+- Mixture ratios configurable via `DataMixtureConfig` in `havoc_core.config`.
+
+## Tools and DSL
+- Math/stats engine (`havoc_tools/python_math/engine.py`) exposes typed helpers for t-tests, ANOVA, regression, DOE analysis, and symbolic derivatives.
+- DOE/SPC DSL defined in `havoc_tools/dsl/spec.py`, parsed via `parser.py`, and executed through `executor.py` that maps DSL to engine calls (DOE example wired).
+
+## RAG Layer
+- Lightweight embedding wrapper (`havoc_rag/embeddings.py`) and in-memory vector index (`havoc_rag/index.py`).
+- Retrieval interface (`havoc_rag/retrieval.py`) supports indexing corpora and top-k lookups for grounding.
+
+## SRS-7B Reasoning Stack
+- Explicit stages implemented under `havoc_srs/`: MODE classifier, GROUND retrieval, PLAN builder, EXECUTE tool calls, ARGUE pro/con stubs, ARBITER decision, AUDIT checks, and ANSWER assembly.
+- Orchestrator (`havoc_srs/orchestrator.py`) wires stages together for end-to-end dry runs.
+
+## Evaluation Harness
+- Benchmark registry (`havoc_eval/benchmarks.py`) and harness (`havoc_eval/harness.py`) to run SRS over smoke tests and capture outputs/confidence.
+
+## CLI
+- `python -m havoc_cli.main "PROMPT"` runs the orchestrator against a prompt using default configs.
+
+## Scripts
+- `scripts/demo_run.py`: minimal demonstration of the SRS pipeline.
+- `scripts/dev_checklist.sh`: placeholder for lint/typecheck/test (extend as needed).
+
+## Getting Started
+1. Install dependencies (consider a virtualenv):
+   ```bash
+   pip install -e .
+   ```
+2. Run a smoke pipeline:
+   ```bash
+   python -m havoc_cli.main "Run a two-sample t-test on dataset A vs B"
+   ```
+3. Train a tokenizer on your text files (corpus paths required):
+   ```bash
+   python -m havoc_core.tokenizer.train_tokenizer --help  # adjust config inside script or import and call train_tokenizer
+   ```
+
+## Notes and Next Steps
+- No training loops or weights are included; hooks and TODOs mark where to integrate future training and RAG corpora.
+- Swap in real embeddings/indices and production-grade DSL/tool mappings when available.

@@ -1,0 +1,34 @@
+[project]
+name = "havoc-7b"
+version = "0.1.0"
+description = "HAVOC-7B / SIGMA-7B core scaffolding for transformer model, SRS reasoning stack, and tooling"
+authors = [{name = "HAVOC Team"}]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+dependencies = [
+    "torch>=2.1",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "sympy>=1.12",
+    "statsmodels>=0.14",
+    "sentencepiece>=0.1.99",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+rag = ["faiss-cpu>=1.7.4"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = {find = {where = ["src"]}}
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.coverage.run]
+branch = true
+source = ["havoc_core", "havoc_data", "havoc_tools", "havoc_rag", "havoc_srs", "havoc_eval"]

@@ -1,0 +1,4 @@
+embed_dim: 768
+index_factory: FlatL2
+top_k: 5
+cache_dir: null

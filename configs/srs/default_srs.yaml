@@ -1,0 +1,11 @@
+enable_arguments: true
+enable_audit: true
+rag:
+  embed_dim: 768
+  index_factory: FlatL2
+  top_k: 5
+  cache_dir: null
+tools:
+  enable_python_math: true
+  enable_dsl: true
+max_steps: 8
