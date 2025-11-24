@@ -12,3 +12,4 @@ def test_tokenizer_special_tokens():
     tok_cfg = TokenizerTrainingConfig()
     assert "<pad>" in tok_cfg.special_tokens
     assert tok_cfg.vocab_size > 0
+

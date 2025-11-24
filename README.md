@@ -1,76 +1,262 @@
-# HAVOC-7B / SIGMA-7B Engineering Base
+# 📘 HAVOC-7B / SIGMA-7B
+### **Domain-Specialized 7B Transformer + SRS Reasoning Stack**
 
-This repository provides the scaffolding for a domain-specialized ~7B decoder-only transformer plus the Scott Reasoning Stack (SRS-7B) and supporting tooling. It includes model definitions, tokenizer pipeline, data plumbing, math/statistics tools, a RAG layer, and the multi-stage SRS orchestrator. **Training loops and real weights are intentionally out of scope for now.**
+**HAVOC-7B (a.k.a. SIGMA-7B)** is a from-scratch 7B-parameter decoder-only transformer engineered for **math, statistics, engineering, DOE/SPC, and small-to-mid manufacturing intelligence**.
 
-## Repository Layout
+This repository provides:
 
-```
+- The model architecture
+- Tokenizer pipeline
+- Data ingestion + preprocessing
+- RAG layer
+- Math/Stats toolchain
+- Full inference server
+- Training stack
+- Evaluation harness
+- CLI
+- The **SRS-7B reasoning pipeline**
+
+**No weights included.**
+Training loops and infrastructure exist — *you* train your model.
+
+---
+
+🧩 Repository Structure
 src/
-  havoc_core/        # configs, model architecture, tokenizer tooling
-  havoc_data/        # data sources, normalization, dataset abstractions
-  havoc_tools/       # math/stats engine and DOE/SPC DSL executor
-  havoc_rag/         # embedding wrapper, vector index, retrieval API
-  havoc_srs/         # MODE→GROUND→PLAN→EXECUTE→ARGUE→ARBITER→AUDIT→ANSWER
-  havoc_eval/        # benchmark registry and evaluation harness
-  havoc_cli/         # CLI entrypoints
-configs/             # sample YAML configs for model, data, tools, RAG, SRS
-scripts/             # helper scripts (dev checklist, demo)
-tests/               # smoke/unit tests
-```
+  havoc_core/        # model architecture, configs, tokenizer
+  havoc_data/        # datasets & preprocessing
+  havoc_tools/       # math/stats engine + DOE/SPC DSL
+  havoc_rag/         # retrieval-augmented generation
+  havoc_srs/         # Scott Reasoning Stack (8 stages)
+  havoc_eval/        # benchmarks & evaluation harness
+  havoc_cli/         # CLI interface
+  havoc_training/    # full training pipeline
+  havoc_inference/   # FastAPI inference server
+frontend/            # React chat UI w/ 3D background
+configs/             # YAML configs for model, training, inference, tools, RAG, SRS
+scripts/             # train.py, serve.py, demo, dev checklist
+tests/               # unit tests
 
-## Core Model (HAVOC-7B)
-- Decoder-only transformer: 32 layers, d_model=4096, 32 heads, head_dim=128, SwiGLU MLP (~11008).
-- Grouped-Query Attention with RoPE and RMSNorm everywhere.
-- Defined in `src/havoc_core/model/transformer.py` and `src/havoc_core/model/blocks.py` with configuration in `src/havoc_core/config.py`.
-- Provides forward pass, KV-cache support, simple greedy `generate`, and config serialization hooks.
 
-## Tokenizer Pipeline
-- SentencePiece-based trainer (`src/havoc_core/tokenizer/train_tokenizer.py`) with normalization helpers and domain DSL tokens registered via `vocab_utils.py`.
-- Target vocab size ~70–80k; reserved tokens for DSL and SRS markers.
-- Returns metadata describing special and domain tokens; no trained artifacts committed.
+---
 
-## Data Pipeline
-- `havoc_data.sources` describes weighted data sources.
-- `havoc_data.preprocess` normalizes whitespace and engineering/math symbols.
-- `havoc_data.dataset` offers a PyTorch-style causal LM dataset with padding to configured sequence length.
-- Mixture ratios configurable via `DataMixtureConfig` in `havoc_core.config`.
+## ⚙️ Core Model: HAVOC-7B
 
-## Tools and DSL
-- Math/stats engine (`havoc_tools/python_math/engine.py`) exposes typed helpers for t-tests, ANOVA, regression, DOE analysis, and symbolic derivatives.
-- DOE/SPC DSL defined in `havoc_tools/dsl/spec.py`, parsed via `parser.py`, and executed through `executor.py` that maps DSL to engine calls (DOE example wired).
+**Decoder-only transformer**
 
-## RAG Layer
-- Lightweight embedding wrapper (`havoc_rag/embeddings.py`) and in-memory vector index (`havoc_rag/index.py`).
-- Retrieval interface (`havoc_rag/retrieval.py`) supports indexing corpora and top-k lookups for grounding.
+- 32 layers
+- **d_model = 4096**
+- **32 attention heads** (8 KV heads for GQA)
+- **SwiGLU MLP (~11k hidden)**
+- RoPE
+- RMSNorm
+- KV-cache optimized
+- Greedy + sampling generation
 
-## SRS-7B Reasoning Stack
-- Explicit stages implemented under `havoc_srs/`: MODE classifier, GROUND retrieval, PLAN builder, EXECUTE tool calls, ARGUE pro/con stubs, ARBITER decision, AUDIT checks, and ANSWER assembly.
-- Orchestrator (`havoc_srs/orchestrator.py`) wires stages together for end-to-end dry runs.
+Defined under:
 
-## Evaluation Harness
-- Benchmark registry (`havoc_eval/benchmarks.py`) and harness (`havoc_eval/harness.py`) to run SRS over smoke tests and capture outputs/confidence.
+`src/havoc_core/model/`
 
-## CLI
-- `python -m havoc_cli.main "PROMPT"` runs the orchestrator against a prompt using default configs.
+---
 
-## Scripts
-- `scripts/demo_run.py`: minimal demonstration of the SRS pipeline.
-- `scripts/dev_checklist.sh`: placeholder for lint/typecheck/test (extend as needed).
+## 🔤 Tokenizer Pipeline
 
-## Getting Started
-1. Install dependencies (consider a virtualenv):
-   ```bash
-   pip install -e .
-   ```
-2. Run a smoke pipeline:
-   ```bash
-   python -m havoc_cli.main "Run a two-sample t-test on dataset A vs B"
-   ```
-3. Train a tokenizer on your text files (corpus paths required):
-   ```bash
-   python -m havoc_core.tokenizer.train_tokenizer --help  # adjust config inside script or import and call train_tokenizer
-   ```
+- SentencePiece trainer
+- ~70–80k vocab
+- Reserved tokens for DSL + SRS markers
+- Domain symbol normalization
 
-## Notes and Next Steps
-- No training loops or weights are included; hooks and TODOs mark where to integrate future training and RAG corpora.
-- Swap in real embeddings/indices and production-grade DSL/tool mappings when available.
+Train with:
+
+`python -m havoc_core.tokenizer.train_tokenizer`
+
+---
+
+## 📚 Data Pipeline
+
+- Weighted mixture of domain/general/dialog sources
+- Preprocessing for math/engineering symbols
+- PyTorch-style causal LM dataset
+
+Configurable via:
+`havoc_data/`
+`configs/data/`
+
+---
+
+## 🔧 Math/Stats Tools + DSL
+
+- T-tests, ANOVA, regression, DOE, derivatives
+- DOE/SPC DSL → parsed → executed → typed results
+
+Located in:
+
+`havoc_tools/`
+
+---
+
+## 🔍 RAG Layer
+
+Lightweight retrieval-augmented generation:
+
+- Embeddings wrapper
+- In-memory vector index
+- Top-k search
+- Grounding injection
+
+Directory:
+
+`havoc_rag/`
+
+
+---
+
+## 🧠 SRS-7B (Scott Reasoning Stack)
+
+Eight explicit reasoning stages:
+
+**MODE → GROUND → PLAN → EXECUTE → ARGUE → ARBITER → AUDIT → ANSWER**
+
+Orchestrated through:
+
+
+
+`havoc_srs/orchestrator.py`
+
+
+Designed for **traceable reasoning**, **tool usage**, and **engineering/math accuracy**.
+
+---
+
+## 🧪 Evaluation Harness
+
+- Benchmark registry
+- Smoke tests
+- Domain evals
+
+Location:
+
+
+
+`havoc_eval/`
+
+
+---
+
+## 🖥️ Training Pipeline
+
+Full stack:
+
+- AdamW (decoupled)
+- Cosine/linear LR schedules w/ warmup
+- Mixed precision (AMP, bfloat16 preferred)
+- Gradient accumulation
+- Checkpoint save/load
+- Validation loop w/ perplexity
+
+Run training:
+
+`python scripts/train.py --config configs/training/default_training.yaml`
+
+
+---
+
+## 🌐 Inference Server (FastAPI)
+
+Features:
+
+- Text completion + chat
+- Streaming (SSE)
+- Greedy, top-k, top-p, temperature
+- Repetition penalty
+- KV-caching
+- Mixed precision
+
+Start server:
+
+
+
+`python scripts/serve.py --checkpoint checkpoints/your_step`
+
+
+Swagger docs:
+
+
+
+http://localhost:8000/docs
+
+
+---
+
+## 💬 Frontend (React + Three.js)
+
+- Modern chat UI
+- Live streaming
+- 3D animated background
+- Token-by-token rendering
+- Settings panel (temp / top-p / top-k sliders)
+
+Start:
+
+
+
+`cd frontend`
+`npm install`
+`npm run dev`
+
+
+---
+
+## 🚀 Quick Start
+
+### Install
+
+
+`pip install -e .`
+
+
+### Train
+
+
+`python scripts/train.py`
+
+
+### Serve
+
+
+`python scripts/serve.py --checkpoint path/to/checkpoint`
+
+
+### Run CLI
+
+
+`python -m havoc_cli.main` "Run a two-sample t-test between A and B"
+
+
+---
+
+## 🗺️ What’s Included vs Missing
+
+### ✔️ Included
+- Model implementation
+- Training loop
+- Inference server
+- UI
+- RAG
+- Math/stats tools
+- SRS-7B reasoning
+- Full configs & documentation
+
+### ❌ Not Included
+- Trained weights
+- Tokenizer model (you train it)
+- Real corpora
+- Multi-GPU training (single GPU only)
+
+---
+
+## 📄 License
+
+**Apache-2.0**
+
+---
