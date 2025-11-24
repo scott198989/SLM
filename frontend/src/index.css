@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-gray-950 text-gray-100;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  }
+}
+
+@layer components {
+  .chat-message {
+    @apply rounded-2xl px-6 py-4 max-w-4xl;
+  }
+
+  .user-message {
+    @apply bg-havoc-900/30 backdrop-blur-sm border border-havoc-800/50;
+  }
+
+  .assistant-message {
+    @apply bg-gray-900/50 backdrop-blur-sm border border-gray-800/50;
+  }
+
+  .glass-panel {
+    @apply bg-gray-900/40 backdrop-blur-xl border border-gray-800/50 rounded-2xl shadow-2xl;
+  }
+
+  .button-primary {
+    @apply bg-havoc-600 hover:bg-havoc-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 ease-in-out active:scale-95;
+  }
+
+  .button-secondary {
+    @apply bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium px-4 py-2 rounded-lg transition-all duration-200 ease-in-out active:scale-95;
+  }
+
+  .input-field {
+    @apply bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-havoc-600 focus:border-transparent transition-all;
+  }
+}
+
+/* Code highlighting */
+pre {
+  @apply bg-gray-900 rounded-lg p-4 overflow-x-auto my-4 border border-gray-800;
+}
+
+pre code {
+  @apply text-sm;
+}
+
+/* Inline code */
+:not(pre) > code {
+  @apply bg-gray-800 px-1.5 py-0.5 rounded text-havoc-400 text-sm;
+}
+
+/* Math rendering */
+.katex {
+  @apply text-gray-100;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-950;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-800 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-700;
+}
+
+/* Selection */
+::selection {
+  @apply bg-havoc-600/30;
+}
+
+/* Loading animation */
+@keyframes thinking {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.thinking-dot {
+  animation: thinking 1.4s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}

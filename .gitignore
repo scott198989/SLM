@@ -19,3 +19,8 @@ runs/
 
 # Data directories (user-provided)
 data/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
