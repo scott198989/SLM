@@ -1,0 +1,12 @@
+vocab_size: 70000
+d_model: 4096
+num_layers: 32
+max_seq_len: 4096
+attention:
+  num_heads: 32
+  head_dim: 128
+  num_kv_heads: 8
+  rope_theta: 10000.0
+mlp:
+  hidden_dim: 11008
+  activation: swiglu

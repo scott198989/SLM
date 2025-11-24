@@ -1,0 +1,12 @@
+mixture:
+  domain_ratio: 0.6
+  general_ratio: 0.3
+  dialog_ratio: 0.1
+  max_sequence_length: 4096
+sources:
+  - name: domain_text
+    paths: ["/path/to/domain/texts"]
+    weight: 3.0
+  - name: general_text
+    paths: ["/path/to/general/texts"]
+    weight: 1.0
