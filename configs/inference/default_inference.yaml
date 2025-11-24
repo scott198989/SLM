@@ -1,0 +1,98 @@
+# HAVOC-7B Default Inference Configuration
+#
+# This config is for serving the trained HAVOC-7B model via FastAPI.
+
+# ============================================================================
+# Model Configuration
+# ============================================================================
+model:
+  vocab_size: 70000
+  d_model: 4096
+  num_layers: 32
+  max_seq_len: 4096
+  dropout: 0.0
+  layer_norm_eps: 1.0e-5
+  initializer_range: 0.02
+  pad_token_id: 0
+  bos_token_id: 1
+  eos_token_id: 2
+
+  attention:
+    num_heads: 32
+    head_dim: 128
+    num_kv_heads: 8
+    rotary_dim: null
+    rope_theta: 10000.0
+
+  mlp:
+    hidden_dim: 11008
+    activation: swiglu
+
+# ============================================================================
+# Checkpoint
+# ============================================================================
+# Path to trained model checkpoint (directory or .pt file)
+# Set to null to use randomly initialized weights (for testing only)
+checkpoint_path: null  # Example: "checkpoints/checkpoint_step_10000"
+
+# ============================================================================
+# Generation Parameters
+# ============================================================================
+# These are defaults that can be overridden per-request
+
+max_new_tokens: 512          # Maximum tokens to generate
+temperature: 0.7             # Sampling temperature (higher = more random)
+top_p: 0.9                   # Nucleus sampling threshold
+top_k: 50                    # Top-k sampling threshold
+repetition_penalty: 1.1      # Penalty for repeating tokens
+do_sample: true              # Use sampling (vs greedy decoding)
+
+# ============================================================================
+# Server Settings
+# ============================================================================
+host: 0.0.0.0               # Server host (0.0.0.0 = all interfaces)
+port: 8000                  # Server port
+max_batch_size: 8           # Maximum batch size for inference
+max_concurrent_requests: 100 # Maximum concurrent requests
+
+# ============================================================================
+# Device & Performance
+# ============================================================================
+device: cuda                # Device: "cuda" or "cpu"
+use_amp: true              # Use mixed precision for inference
+amp_dtype: bfloat16        # Mixed precision dtype: "bfloat16" or "float16"
+
+# ============================================================================
+# Tokenizer
+# ============================================================================
+tokenizer_path: artifacts/tokenizer  # Path to trained tokenizer artifacts
+
+# ============================================================================
+# Generation Strategies
+# ============================================================================
+#
+# Different use cases may require different generation parameters:
+#
+# 1. Creative Writing (diverse, creative):
+#    temperature: 0.9
+#    top_p: 0.95
+#    top_k: 100
+#    repetition_penalty: 1.2
+#
+# 2. Technical/Factual (focused, deterministic):
+#    temperature: 0.3
+#    top_p: 0.85
+#    top_k: 30
+#    repetition_penalty: 1.05
+#
+# 3. Math/Reasoning (balanced):
+#    temperature: 0.5
+#    top_p: 0.9
+#    top_k: 50
+#    repetition_penalty: 1.1
+#
+# 4. Greedy Decoding (most deterministic):
+#    temperature: 1.0
+#    do_sample: false
+#
+# ============================================================================

@@ -141,3 +141,32 @@ class TrainingConfig:
     # Device
     device: str = "cuda"
     seed: int = 42
+
+
+@dataclass
+class InferenceConfig:
+    # Model
+    model_config: Optional[HavocConfig] = None
+    checkpoint_path: Optional[str] = None
+
+    # Generation parameters
+    max_new_tokens: int = 512
+    temperature: float = 0.7
+    top_p: float = 0.9
+    top_k: int = 50
+    repetition_penalty: float = 1.1
+    do_sample: bool = True
+
+    # Server settings
+    host: str = "0.0.0.0"
+    port: int = 8000
+    max_batch_size: int = 8
+    max_concurrent_requests: int = 100
+
+    # Device
+    device: str = "cuda"
+    use_amp: bool = True
+    amp_dtype: str = "bfloat16"
+
+    # Tokenizer
+    tokenizer_path: str = "artifacts/tokenizer"
