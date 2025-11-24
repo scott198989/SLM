@@ -31,4 +31,8 @@ profile = "black"
 
 [tool.coverage.run]
 branch = true
-source = ["havoc_core", "havoc_data", "havoc_tools", "havoc_rag", "havoc_srs", "havoc_eval"]
+source = ["havoc_core", "havoc_data", "havoc_tools", "havoc_rag", "havoc_srs", "havoc_eval", "havoc_training"]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
