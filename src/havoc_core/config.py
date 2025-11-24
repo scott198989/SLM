@@ -98,3 +98,75 @@ class SRSConfig:
 class EvalConfig:
     bench_name: str = "smoke"
     output_dir: str = "artifacts/eval"
+
+
+@dataclass
+class TrainingConfig:
+    # Model and data
+    model_config: Optional[HavocConfig] = None
+    data_config: Optional[DataMixtureConfig] = None
+
+    # Training hyperparameters
+    batch_size: int = 8
+    gradient_accumulation_steps: int = 4
+    max_epochs: int = 10
+    max_steps: Optional[int] = None
+    learning_rate: float = 3e-4
+    weight_decay: float = 0.1
+    warmup_steps: int = 2000
+    max_grad_norm: float = 1.0
+
+    # Learning rate schedule
+    lr_scheduler_type: str = "cosine"  # "cosine", "linear", "constant"
+    min_learning_rate: float = 3e-5
+
+    # Mixed precision
+    use_amp: bool = True
+    amp_dtype: str = "bfloat16"  # "bfloat16" or "float16"
+
+    # Checkpointing
+    checkpoint_dir: str = "checkpoints"
+    save_every_n_steps: int = 1000
+    keep_last_n_checkpoints: int = 3
+    resume_from_checkpoint: Optional[str] = None
+
+    # Validation
+    eval_every_n_steps: int = 500
+    eval_samples: int = 100
+
+    # Logging
+    log_every_n_steps: int = 10
+    log_dir: str = "logs"
+
+    # Device
+    device: str = "cuda"
+    seed: int = 42
+
+
+@dataclass
+class InferenceConfig:
+    # Model
+    model_config: Optional[HavocConfig] = None
+    checkpoint_path: Optional[str] = None
+
+    # Generation parameters
+    max_new_tokens: int = 512
+    temperature: float = 0.7
+    top_p: float = 0.9
+    top_k: int = 50
+    repetition_penalty: float = 1.1
+    do_sample: bool = True
+
+    # Server settings
+    host: str = "0.0.0.0"
+    port: int = 8000
+    max_batch_size: int = 8
+    max_concurrent_requests: int = 100
+
+    # Device
+    device: str = "cuda"
+    use_amp: bool = True
+    amp_dtype: str = "bfloat16"
+
+    # Tokenizer
+    tokenizer_path: str = "artifacts/tokenizer"
