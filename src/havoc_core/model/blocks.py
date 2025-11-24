@@ -84,14 +84,30 @@ class GQAttention(nn.Module):
         k = self._shape(self.k_proj(hidden_states), self.num_kv_heads)
         v = self._shape(self.v_proj(hidden_states), self.num_kv_heads)
 
+        # Determine position offset for RoPE when using KV-cache
         device = hidden_states.device
-        rope_cos_sin = self.rotary(seq_len, device=device)
-        cos = rope_cos_sin.cos()[None, None, :, : self.head_dim]
-        sin = rope_cos_sin.sin()[None, None, :, : self.head_dim]
+        if past_key_value is not None:
+            past_len = past_key_value[0].shape[2]
+        else:
+            past_len = 0
 
-        q = torch.cat([self.rotary.apply_rotary(q[..., : self.rotary.dim], cos, sin), q[..., self.rotary.dim :]], dim=-1)
-        k = torch.cat([self.rotary.apply_rotary(k[..., : self.rotary.dim], cos, sin), k[..., self.rotary.dim :]], dim=-1)
+        # Generate RoPE embeddings for the full sequence length
+        full_seq_len = past_len + seq_len
+        rope_cos_sin = self.rotary(full_seq_len, device=device)
 
+        # Extract cos/sin for current positions
+        cos = rope_cos_sin.cos()[past_len : past_len + seq_len, : self.head_dim][None, None, :, :]
+        sin = rope_cos_sin.sin()[past_len : past_len + seq_len, : self.head_dim][None, None, :, :]
+
+        # Apply RoPE to query and key
+        q_rot = self.rotary.apply_rotary(q[..., : self.rotary.dim], cos, sin)
+        k_rot = self.rotary.apply_rotary(k[..., : self.rotary.dim], cos, sin)
+
+        # Concatenate rotated and non-rotated parts
+        q = torch.cat([q_rot, q[..., self.rotary.dim :]], dim=-1)
+        k = torch.cat([k_rot, k[..., self.rotary.dim :]], dim=-1)
+
+        # Concatenate with past keys/values if using cache
         if past_key_value is not None:
             pk, pv = past_key_value
             k = torch.cat([pk, k], dim=2)
@@ -102,12 +118,15 @@ class GQAttention(nn.Module):
         else:
             present = None
 
+        # Expand KV heads for GQA
         k_expanded = k.repeat_interleave(self.num_heads // self.num_kv_heads, dim=1)
         v_expanded = v.repeat_interleave(self.num_heads // self.num_kv_heads, dim=1)
 
+        # Compute attention scores
         attn_scores = torch.matmul(q, k_expanded.transpose(-1, -2)) / math.sqrt(self.head_dim)
         if attention_mask is not None:
-            attn_scores += attention_mask
+            attn_scores = attn_scores + attention_mask
+
         attn_probs = F.softmax(attn_scores, dim=-1)
         attn_output = torch.matmul(attn_probs, v_expanded)
         attn_output = attn_output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
@@ -154,3 +173,7 @@ class TransformerBlock(nn.Module):
         mlp_out = self.mlp(self.mlp_norm(hidden_states))
         hidden_states = hidden_states + self.dropout(mlp_out)
         return hidden_states, attn_out.present_key_value
+
+
+# Alias for compatibility
+GroupedQueryAttention = GQAttention
