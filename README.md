@@ -1,387 +1,350 @@
-🧠 HAVOC-7B / SIGMA-7B
-A From-Scratch 7B Specialist Model for Math, Statistics, Six Sigma, DOE, SPC, and Process Engineering
+# 🧠 HAVOC-7B / SIGMA-7B  
+### A From-Scratch 7B Specialist Model for Math, Statistics, Six Sigma, DOE, SPC, and Process Engineering
 
-Welcome to the HAVOC-7B (and future SIGMA-7B) project.
-This repository contains all scaffolding, architecture, tooling, and reasoning infrastructure required to build a from-scratch, domain-specialist small language model—but NOT the training code or weights yet.
+Welcome to **HAVOC-7B** (and the upcoming **SIGMA-7B**).  
+This repository contains all scaffolding, architecture, tooling, and reasoning infrastructure required to build a **from-scratch, domain-specialist 7B transformer** — **but NOT the training code or weights yet**.
 
-HAVOC-7B is designed to punch far above its size by combining:
+HAVOC-7B is designed to punch far above its size through:
 
-a custom 7B transformer,
+- A custom 7B transformer architecture  
+- A domain-aware tokenizer  
+- External math/stats/DOE/SPC tools  
+- Retrieval-augmented reasoning (RAG)  
+- A multi-stage reasoning framework (SRS-7B)
 
-domain-aware tokenizer,
+Think of it as a **math/stats/engineering sniper rifle**, not a general chatbot.
 
-powerful external tools (stats, DOE/SPC, symbolic math),
+---
 
-PDF/textbook-backed retrieval (RAG), and
-
-a multi-stage reasoning framework (SRS-7B).
-
-Think of it as a math/stats/engineering sniper rifle, not a general-purpose chatbot.
-
-🔥 Project Goals
+## 🔥 Project Goals
 
 HAVOC-7B aims to:
 
-Outperform much larger models in math, statistical inference, ANOVA, regression, DOE, Six Sigma, SPC, and materials/process engineering.
+- Outperform larger general models in **math, statistics, engineering, DOE, SPC, and Six Sigma**  
+- Serve as a **local, offline specialist assistant**  
+- Showcase how a small model + the right scaffolding can rival much larger models  
+- Train exclusively on:
+  - textbooks  
+  - engineering/physics notes  
+  - open datasets  
+  - statistical and DOE handbooks  
+  - domain DSLs  
+  - light general text  
 
-Serve as a local, offline, mechatronics/engineering assistant.
+This is a **true from-scratch model** — no LLaMA/Qwen checkpoints.
 
-Demonstrate that a small model, with the right scaffolding and tools, can rival or surpass general LLMs in specialized domains.
+---
 
-Be trained ONLY on:
+## 🏗️ Repository Structure
 
-textbooks,
-
-course notes,
-
-engineering handbooks,
-
-open datasets,
-
-general knowledge corpora (light),
-
-and domain-specific procedural DSLs.
-
-No LLaMA, no Qwen, no reused checkpoints.
-This is a true from-scratch model.
-
-🏗️ Repository Structure
+```bash
 src/
-  havoc_core/            # Model architecture, tokenizer, configs
-  havoc_data/            # Data ingestion, cleaning, dataset classes
-  havoc_tools/           # Python math/stats engines + DSL executor
-  havoc_rag/             # RAG: embeddings, vector index, retrieval
-  havoc_srs/             # SRS-7B reasoning modules
-  havoc_cli/             # CLI runner and dev tools
+havoc_core/
+havoc_data/
+havoc_tools/
+havoc_rag/
+havoc_srs/
+havoc_cli/
 
 docs/
-  AGENTS.md              # Agent responsibilities & interfaces
-  REASONING.md           # SRS-7B framework (MODE → ANSWER)
-  MODEL.md               # HAVOC-7B architecture
-  TOKENIZER.md           # Domain tokenizer design
-  DATA.md                # Corpus + preprocessing design
+AGENTS.md
+REASONING.md
+MODEL.md
+TOKENIZER.md
+DATA.md
 
 configs/
-  model/                 # Model hyperparameters
-  data/                  # Dataset mix ratios
-  tools/                 # Python tools config
-  srs/                   # Reasoning framework settings
-  rag/                   # RAG configs
+model/
+data/
+tools/
+srs/
+rag/
 
 tests/
-  test_model_*.py
-  test_srs_*.py
-  test_tools_*.py
-  test_tokenizer_*.py
-
 scripts/
-  dev_checklist.sh
-  demo_run.py
+README.md
+```
 
 
-This layout is modular, scalable, and training-pipeline ready.
+**src/** contains the code.  
+**docs/** contains specifications.  
+**configs/** holds structured configuration.  
+**tests/** contains unit tests.  
+**scripts/** contains dev tools.
 
-🧬 1. HAVOC-7B Architecture (Model Layer)
+---
 
-HAVOC-7B uses a modern 7B transformer design:
+## 🧬 1. HAVOC-7B Architecture
 
-32 decoder-only layers
+A modern 7B decoder-only transformer:
 
-d_model = 4096
+- **32 layers**  
+- **d_model = 4096**  
+- **32 attention heads**  
+- **head_dim = 128**  
+- **SwiGLU MLP (≈11008 dim)**  
+- **Grouped-Query Attention (GQA)**  
+- **RMSNorm**  
+- **RoPE positional encoding**  
+- **4k–8k context**
 
-32 attention heads
+Architecture files:
 
-head_dim = 128
+- `src/havoc_core/model/transformer.py`  
+- `src/havoc_core/model/blocks.py`  
+- `src/havoc_core/config.py`
 
-SwiGLU MLP, ~11k FFN dim
+---
 
-Grouped-Query Attention (GQA)
+## ✂️ 2. Custom Tokenizer (Domain-Aware)
 
-RMSNorm everywhere
+Tokenizer target size: **70k–80k**.
 
-RoPE position embeddings
+Training corpus includes:
 
-4k–8k context length
+- Statistics textbooks  
+- DOE manuals (Box-Behnken, Taguchi, factorial designs)  
+- Six Sigma / SPC handbooks  
+- Engineering and physics notes  
+- Symbolic math  
+- Light general text  
 
-This keeps the model efficient on a single RTX 5090 (32GB) while still enabling long-form reasoning.
+Preserves domain terms as whole tokens, e.g.:
 
-✂️ 2. Custom Tokenizer (Domain-Aware)
+- `ANOVA`, `p-value`, `Cpk`, `Ppk`  
+- `factorial_doE`, `control_chart`  
+- Unicode math symbols: `µ`, `σ`, `Σ`, `∂`, etc.
 
-The tokenizer is custom-built using SentencePiece with ~70k–80k tokens.
+Special DSL tokens such as:
 
-It is trained on:
+- `RUN_TTEST`  
+- `DESIGN_DOE`  
+- `CHECK_SPC`  
+- `ALPHA_0_05`
 
-Engineering textbooks
+Tokenizer code lives in:
 
-Materials & process engineering datasets
+- `src/havoc_core/tokenizer/`
 
-Six Sigma / SPC / DOE manuals
+---
 
-Statistics textbooks
+## ⚙️ 3. Tools Layer (Math/Stats/DOE/SPC Engine)
 
-Physics/math/chemistry notes
+HAVOC-7B does not guess numeric answers.  
+It writes code → tools execute → model interprets.
 
-User’s course notes & slides (APSU, etc.)
+Tools include:
 
-Light general text for common-sense structure
+- NumPy  
+- SciPy  
+- SymPy  
+- statsmodels  
+- custom DOE/SPC routines
 
-Special tokens are reserved for domain actions and DSL commands:
+Examples:
 
-RUN_TTEST
+```python
+run_ttest()
+run_anova()
+fit_regression()
+evaluate_doe()
+```
 
-DESIGN_DOE
+### Located in:
 
-CHECK_SPC
+`src/havoc_tools/python_math/`
 
-FACTOR, RESPONSE
+`src/havoc_tools/dsl/`
 
-ALPHA_0_05
+### 🔎 4. RAG Layer
 
-symbols: µ, σ, Σ, ∂, ∫, etc.
+The model accesses external references:
 
-The tokenizer is the first place where domain advantage starts.
+- PDFs
 
-⚙️ 3. Tools Layer (Math/Stats/DOE/SPC Engine)
+- textbooks
 
-HAVOC-7B does not rely on “LLM vibes” to compute numbers.
-It writes mini-programs and the tools execute them.
+- engineering notes
 
-Core tools:
+- statistical formulas
 
-NumPy
+- DOE/SPC theory
 
-SciPy
+### Components:
 
-SymPy
+- Embedding model wrapper
 
-statsmodels
+- Vector index (FAISS or pluggable)
 
-custom DOE/SPC libraries
+- Retrieval interface
 
-symbolic differentiation/integration
+### Located in:
 
-regression, ANOVA, factorial design, Box-Behnken, Taguchi, control charts, capability indices, etc.
+`src/havoc_rag/`
 
-Example tool call:
+### 🧠 5. SRS-7B — Scott Reasoning Stack
 
-from statsmodels.formula.api import ols
-model = ols("Y ~ A + B + A:B", data=df).fit()
-summary = model.summary()
+This is the reasoning engine behind HAVOC-7B.
 
+- MODE → GROUND → PLAN → EXECUTE → ARGUE → ARBITER → AUDIT → ANSWER
 
-The model doesn’t “guess” statistical results — it reads outputs and interprets them.
+### MODE
 
-🔎 4. RAG Layer (Knowledge Retrieval)
+- Classifies domain, difficulty, risk.
 
-HAVOC-7B uses external references instead of memorizing everything:
+### GROUND
 
-PDFs (stats, DOE, engineering)
+- Retrieve evidence through RAG.
 
-textbooks
+### PLAN
 
-notes
+- Produce structured steps + tool definitions.
 
-examples
+### EXECUTE
 
-formulas
+- Run math/statistics tools & DSL commands.
 
-handbooks
+### ARGUE
 
-Architecture:
+- Generate PRO and CON chains for high-risk tasks.
 
-embedding model wrapper
+### ARBITER
 
-FAISS/compatible vector index
+- Decide outcome based on tool results + arguments.
 
-retrieval interface:
-retrieve_references(query, k=5)
+### AUDIT
 
-This enables grounded, citation-style reasoning.
+- Self-attack: check assumptions, errors, logic.
 
-🧠 5. SRS-7B — Scott Reasoning Stack
+### ANSWER
 
-This is the secret sauce.
-Every serious query goes through:
+- Final structured output with confidence & caveats.
 
-MODE → GROUND → PLAN → EXECUTE → ARGUE → ARBITER → AUDIT → ANSWER
+Code: `src/havoc_srs/`
 
-🔹 MODE
+### 📊 6. Benchmark System
 
-Classify domain, difficulty, and risk.
+Benchmark suites will test:
 
-🔹 GROUND
+- Pure math
 
-Attach evidence through RAG retrieval.
+- Probability/statistics
 
-🔹 PLAN
+- ANOVA/regression
 
-Produce structured reasoning steps + tool specs.
+- DOE design + interpretation
 
-🔹 EXECUTE
+- SPC / capability analysis
 
-Run tools / DSL and return structured outputs.
+- Materials/process engineering
 
-🔹 ARGUE
+Three levels:
 
-Two chains:
+- Base model
 
-PRO (“strongest case in favor”)
+- Model + tools
 
-CON (“strongest case against”)
+- Full SRS-7B pipeline
 
-🔹 ARBITER
+Located in:
 
-Choose outcome, weigh arguments, report confidence.
+`src/havoc_eval/`
 
-🔹 AUDIT
-
-Self-attack pass checking for:
-
-math errors
-
-assumption violations
-
-leaps in logic
-
-hallucinations
-
-🔹 ANSWER
-
-Final, calibrated output.
-
-This pipeline makes HAVOC-7B more reliable than vanilla LLMs.
-
-📊 6. Benchmark System
-
-Benchmark groups:
-
-Pure math
-
-Stats (inference, ANOVA, regression)
-
-DOE design + analysis
-
-SPC (stability, control charts, capability)
-
-Materials/process engineering
-
-Physics/mechanics fundamentals
-
-Benchmarks test:
-
-base model
-
-model + tools
-
-full SRS pipeline
-
-Target: beat GPT-5.1 (Kepler) in at least one test per domain.
-
-🧩 7. Project Status
+### 🧩 7. Project Status
 ✔️ Completed / Scaffolded
 
-Repo structure
+- Repo layout
 
-Model architecture design
+- Architecture definitions
 
-Tokenizer design
+- Tokenizer design
 
-Tools layer design
+- Tools/DSL structure
 
-DSL structure
+- RAG interfaces
 
-RAG structure
+- SRS pipeline design
 
-SRS-7B stage definitions
+### 🟡 Work in Progress
 
-AGENTS.md stub
+- Implementing modules
 
-🟡 In Progress
+Adding tests
 
-Implementing code modules
+- Writing detailed docs
 
-Writing unit tests
+### ⛔ Not Started Yet
 
-Expanding docs
+- Model initialization
 
-⛔ Not Started Yet
+- Tokenizer training
 
-Actual dataset ingestion
+- Pretraining
 
-Tokenizer training
+- Fine-tuning
 
-Model initialization
+- Checkpoints
 
-Pretraining / fine-tuning
+- Distributed training setup
 
-Checkpoint storage
-
-Distributed training
-
-Not until scaffolding is finished.
-
-🏁 8. How to Use This Repo
+### 🏁 8. How to Use This Repo
 
 For now:
-Use the CLI and orchestrator with placeholder models and dummy tool outputs to test the reasoning pipeline.
 
-When ready to train, you will:
+- Explore the scaffolding
 
-Build tokenizer
+- Test the orchestrator with dummy data
 
-Prepare corpora
+- Customize configs
 
-Launch pretraining (separate repo or dir)
+- Fill in tools and reasoning components
 
-Fine-tune
+- Once scaffolding is complete:
 
-Integrate weights here
+- Train tokenizer
 
-Run full SRS-7B pipeline
+- Build dataset
 
-🚀 9. Why HAVOC-7B Will Outperform Bigger Models
+- Begin pretraining (separate repo or directory)
 
-Because:
+- Insert trained weights into HAVOC-7B
 
-Domain tokenizer (context preserved)
+- Enable full SRS-7B reasoning
 
-External numeric tools (no guessing)
+### 🚀 9. Why HAVOC-7B Will Outperform Larger Models
 
-Evidence-grounded RAG
+- Domain-aware tokenizer
 
-Multi-stage reasoning pipeline
+- External numeric tools
 
-Explicit argumentation
+- Retrieval-backed reasoning
 
-Confidence calibration
+- Explicit multi-stage logic
 
-Domain-specialist corpora
+- Built-in argument attack/defense
 
-Engineering/process-centric DSL
+- Structured uncertainty
 
-HAVOC-7B doesn’t replace general LLMs —
-it snipes in its domain.
+- Engineering DSLs
 
-🤝 10. Contributing
+- Training on specialist corpora
 
-This repo is actively under construction.
-Codex 5.1 is the main automated contributor.
+HAVOC-7B doesn’t aim to be universal —
+it aims to dominate its chosen domains.
 
-All code should:
+### 🤝 10. Contributing
 
-be typed
+Codex 5.1 is the automated engineer for this project.
+Human PRs should follow:
 
-be modular
+- modular code
 
-include tests
+- strong typing
 
-include TODOs
+- tests
 
-avoid training-related code for now
+- clear comments
 
-PRs from humans should follow the architecture documents in /docs/.
+- no training-related code here
 
-📬 Contact
-
-Maintainer: Scott “Chaos Monkey” T.
-Co-architect: Kepler (GPT-5.1)
+- follow the docs in `/docs/`
