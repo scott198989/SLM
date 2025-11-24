@@ -1,0 +1,136 @@
+# HAVOC Tokenizer Configuration
+# Default configuration for training a domain-specialized tokenizer
+# for mathematics, statistics, engineering, and DOE/SPC applications
+
+# Vocabulary size (default: 75000)
+# Recommended range: 70000-80000 for specialized 7B models
+# - 70k: Smaller, faster, but may struggle with rare technical terms
+# - 75k: Balanced (recommended)
+# - 80k: Better coverage for specialized terms, slightly larger model
+vocab_size: 75000
+
+# SentencePiece model type
+# Options: bpe, unigram, char, word
+# Recommended: bpe (Byte Pair Encoding) for balanced performance
+model_type: bpe
+
+# Character coverage (default: 0.9995)
+# Higher values preserve more rare characters (important for Greek letters, symbols)
+# - 0.999: Standard coverage
+# - 0.9995: Recommended for mathematical/engineering text
+# - 1.0: Maximum coverage (may include noise)
+character_coverage: 0.9995
+
+# Maximum sentence length in characters (default: 2048)
+# Longer sentences will be truncated during training
+# Should match or exceed max_seq_len in model config
+max_sentence_length: 2048
+
+# Text normalization
+# Enable preprocessing to normalize unicode characters, whitespace, etc.
+# Recommended: true (applies math-aware normalization)
+normalize_text: true
+
+# Special tokens (base tokens, domain tokens are added automatically)
+# These are the fundamental control tokens for the model
+special_tokens:
+  - "<pad>"      # Padding token (id=0)
+  - "<bos>"      # Beginning of sequence (id=1)
+  - "<eos>"      # End of sequence (id=2)
+  - "<unk>"      # Unknown token (id=3)
+  - "<mask>"     # Mask token (for future MLM training)
+
+# Additional reserved tokens for SRS reasoning stack, DSL, and tools
+# are automatically added from vocab_utils.py:
+#
+# SRS Stage Markers (8 tokens):
+#   <SRS_MODE>, <SRS_GROUND>, <SRS_PLAN>, <SRS_EXECUTE>,
+#   <SRS_ARGUE>, <SRS_ARBITER>, <SRS_AUDIT>, <SRS_ANSWER>
+#
+# DSL Markers (2 tokens):
+#   <DSL_BEGIN>, <DSL_END>
+#
+# Tool Markers (2 tokens):
+#   <TOOL_MATH>, <TOOL_STATS>
+#
+# Engineering Symbol Markers (2 tokens):
+#   <ENG_SYMBOL_START>, <ENG_SYMBOL_END>
+#
+# Math Symbols (14 tokens):
+#   ∑, ∏, ∫, ∂, ∇, √, ≈, ≠, ≤, ≥, ±, ×, ÷, ∞
+#
+# Greek Letters (48 tokens):
+#   α, β, γ, δ, ε, ... (all lowercase and uppercase)
+#
+# Engineering Units (19 tokens):
+#   psi, MPa, GPa, kPa, N/m, N/cm, °C, °F, kW, Hz, ...
+#
+# DOE/SPC Domain Tokens (28 tokens):
+#   ANOVA, p-value, Cpk, Cp, Ppk, Box-Behnken, Taguchi,
+#   X-bar, R-chart, UCL, LCL, factorial, ...
+
+# Training corpus input files/directories
+# Can specify individual files or directories (recursively searches for .txt files)
+# Example:
+#   input_files:
+#     - data/math
+#     - data/stats
+#     - data/engineering
+#     - data/general
+#
+# For testing with minimal data, leave empty to use built-in domain samples:
+input_files: []
+
+# Output directory for tokenizer artifacts
+# Will contain:
+#   - tokenizer.model (SentencePiece model)
+#   - tokenizer.vocab (vocabulary file)
+#   - tokenizer_metadata.json (metadata with special token info)
+output_dir: artifacts/tokenizer
+
+# ============================================================================
+# Usage Examples
+# ============================================================================
+#
+# 1. Train with default settings (domain samples only):
+#    python -m havoc_core.tokenizer.train_tokenizer --config configs/tokenizer/default.yaml
+#
+# 2. Train with custom corpus:
+#    python -m havoc_core.tokenizer.train_tokenizer \
+#      --config configs/tokenizer/default.yaml \
+#      --input-files data/math data/stats data/engineering
+#
+# 3. Train with custom vocab size:
+#    python -m havoc_core.tokenizer.train_tokenizer \
+#      --config configs/tokenizer/default.yaml \
+#      --vocab-size 80000
+#
+# 4. Override output directory:
+#    python -m havoc_core.tokenizer.train_tokenizer \
+#      --config configs/tokenizer/default.yaml \
+#      --output-dir custom_tokenizer
+#
+# ============================================================================
+# Integration with Training Pipeline
+# ============================================================================
+#
+# After training the tokenizer, update your training config to point to it:
+#
+#   # In configs/training/default_training.yaml or your custom config:
+#   tokenizer_path: artifacts/tokenizer
+#
+# The training pipeline will automatically load:
+#   - artifacts/tokenizer/tokenizer.model
+#   - artifacts/tokenizer/tokenizer_metadata.json
+#
+# ============================================================================
+# Notes
+# ============================================================================
+#
+# - Tokenizer must be trained before model training
+# - All special tokens are automatically registered
+# - Domain samples ensure SRS, DSL, and tool tokens are properly learned
+# - Character normalization converts superscripts/subscripts to ^/_ notation
+# - Greek letters and math symbols are preserved in vocabulary
+# - Engineering units are treated as single tokens where possible
+#
