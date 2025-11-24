@@ -6,3 +6,16 @@ artifacts/
 *.model
 .venv/
 .env
+
+# Build artifacts
+*.egg-info/
+build/
+dist/
+
+# Training outputs
+checkpoints/
+logs/
+runs/
+
+# Data directories (user-provided)
+data/
