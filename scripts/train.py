@@ -12,14 +12,10 @@ This script is the main entrypoint for training the HAVOC-7B model.
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 import torch
 import yaml
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from havoc_core.config import HavocConfig, TrainingConfig, DataMixtureConfig
 from havoc_core.model.transformer import HavocModel
