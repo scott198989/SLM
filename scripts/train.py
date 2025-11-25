@@ -20,7 +20,7 @@ import yaml
 from havoc_core.config import HavocConfig, TrainingConfig, DataMixtureConfig
 from havoc_core.model.transformer import HavocModel
 from havoc_data.dataset import CausalLMDataset
-from havoc_data.sources import DataSource
+from havoc_data.sources import DataSource, TextFileSource
 from havoc_training.trainer import Trainer
 
 
@@ -136,7 +136,7 @@ def create_datasets(config: TrainingConfig):
     # TODO: Implement proper data source weights based on config
     sources = []
     for txt_file in data_dir.rglob("*.txt"):
-        source = DataSource(name=txt_file.stem, path=str(txt_file), weight=1.0)
+        source = TextFileSource(name=txt_file.stem, paths=[str(txt_file)], weight=1.0)
         sources.append(source)
 
     if not sources:

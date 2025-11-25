@@ -2,11 +2,40 @@ mixture:
   domain_ratio: 0.6
   general_ratio: 0.3
   dialog_ratio: 0.1
-  max_sequence_length: 4096
+  max_sequence_length: 512
+  samples_per_epoch: 128
+  pack_sequences: true
+  add_bos: true
+  add_eos: true
+
+# Data sources can be folders or files. All paths are relative to repo root by default.
 sources:
-  - name: domain_text
-    paths: ["/path/to/domain/texts"]
-    weight: 3.0
-  - name: general_text
-    paths: ["/path/to/general/texts"]
+  - name: general
+    type: text
+    paths:
+      - data/general
     weight: 1.0
+  - name: math
+    type: statistics
+    paths:
+      - data/math
+    weight: 1.3
+  - name: engineering
+    type: engineering
+    paths:
+      - data/engineering
+    weight: 1.5
+  - name: dialog
+    type: jsonl
+    text_field: text
+    paths:
+      - data/dialog.jsonl
+    weight: 0.7
+  - name: dsl
+    type: text
+    paths:
+      - data/dsl
+    weight: 1.2
+
+tokenizer_path: artifacts/tokenizer
+output_path: artifacts/data/train.jsonl

@@ -69,6 +69,10 @@ class DataMixtureConfig:
     general_ratio: float = 0.3
     dialog_ratio: float = 0.1
     max_sequence_length: int = 4096
+    samples_per_epoch: int = 1024
+    pack_sequences: bool = True
+    add_bos: bool = True
+    add_eos: bool = True
 
 
 @dataclass
