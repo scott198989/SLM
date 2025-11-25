@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 """Smoke test for HAVOC-7B model implementation."""
 import sys
+from pathlib import Path
+
+# Ensure repository src/ is importable when running as a script without editable install
+ROOT = Path(__file__).resolve().parent
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 try:
     import torch
