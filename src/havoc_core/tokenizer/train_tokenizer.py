@@ -107,6 +107,9 @@ def train_tokenizer(config: TokenizerTrainingConfig, verbose: bool = True) -> To
 
     # Register all special tokens
     special_tokens = register_special_tokens(config.special_tokens)
+    # Do not pass core IDs as user-defined symbols; SentencePiece reserves them via *_id.
+    core_reserved = {"<unk>", "<pad>", "<bos>", "<eos>", "<s>", "</s>"}
+    special_tokens = [tok for tok in special_tokens if tok not in core_reserved]
 
     if verbose:
         print(f"Training tokenizer with {len(special_tokens)} special tokens")
@@ -161,6 +164,7 @@ def train_tokenizer(config: TokenizerTrainingConfig, verbose: bool = True) -> To
         eos_id=2,
         unk_id=3,
         user_defined_symbols=special_tokens,
+        hard_vocab_limit=False,  # allow smaller effective vocab when corpus is small
         # Additional settings for better domain coverage
         split_by_unicode_script=True,
         split_by_whitespace=True,

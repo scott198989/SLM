@@ -18,9 +18,10 @@ import torch
 import yaml
 
 from havoc_core.config import HavocConfig, TrainingConfig, DataMixtureConfig
+from havoc_core.tokenizer.tokenizer import load_tokenizer
 from havoc_core.model.transformer import HavocModel
 from havoc_data.dataset import CausalLMDataset
-from havoc_data.sources import DataSource, TextFileSource
+from havoc_data.sources import DataSource, TextFileSource, JSONLSource, load_sources
 from havoc_training.trainer import Trainer
 
 
@@ -88,25 +89,40 @@ def create_datasets(config: TrainingConfig):
     """
     Create training and validation datasets.
 
-    NOTE: This is a placeholder. In production:
-    1. Load actual text corpora (math, stats, engineering, general)
-    2. Use trained SentencePiece tokenizer
-    3. Apply proper data mixture ratios
     """
-    # Check if data sources are provided
-    data_dir = Path("data")
-    if not data_dir.exists() or not list(data_dir.glob("*.txt")):
+    # Tokenizer: prefer trained tokenizer, fallback to dummy for dry runs
+    tokenizer = None
+    if config.tokenizer_path:
+        tok_path = Path(config.tokenizer_path)
+        if tok_path.exists():
+            tokenizer = load_tokenizer(str(tok_path))
+            print(f"Loaded tokenizer from {tok_path}")
+        else:
+            print(f"WARNING: tokenizer_path {tok_path} not found. Falling back to dummy tokenizer.")
+    if tokenizer is None:
+        tokenizer = create_dummy_tokenizer(config.model_config.vocab_size)
+        print("Using dummy tokenizer (character-level). Train and provide a real tokenizer for production.")
+
+    # Build sources
+    sources: list[DataSource] = []
+    if config.data_sources:
+        sources = load_sources(config.data_sources)
+    else:
+        data_dir = Path("data")
+        if data_dir.exists():
+            # Collect .txt and .jsonl files under data/
+            txt_files = list(data_dir.rglob("*.txt"))
+            jsonl_files = list(data_dir.rglob("*.jsonl"))
+            for txt_file in txt_files:
+                sources.append(TextFileSource(name=txt_file.stem, paths=[str(txt_file)], weight=1.0))
+            for jsonl_file in jsonl_files:
+                sources.append(JSONLSource(name=jsonl_file.stem, paths=[str(jsonl_file)], weight=1.0))
+
+    if not sources:
         print("\n" + "=" * 80)
-        print("WARNING: No data directory found or no .txt files in data/")
-        print("=" * 80)
-        print("\nTo train with real data:")
-        print("  1. Create a 'data/' directory")
-        print("  2. Add your text files (*.txt)")
-        print("  3. Organize by domain: data/math/, data/stats/, data/general/, etc.")
-        print("\nFor now, creating a minimal dummy dataset for testing...")
+        print("WARNING: No data sources found. Using synthetic dummy dataset.")
         print("=" * 80 + "\n")
 
-        # Create dummy dataset for testing
         class DummyDataset(torch.utils.data.Dataset):
             def __init__(self, size: int, seq_len: int):
                 self.size = size
@@ -116,31 +132,13 @@ def create_datasets(config: TrainingConfig):
                 return self.size
 
             def __getitem__(self, idx):
-                # Random token IDs for testing
-                input_ids = torch.randint(0, 1000, (self.seq_len,))
+                input_ids = torch.randint(0, tokenizer.vocab_size, (self.seq_len,))
                 attention_mask = torch.ones_like(input_ids)
                 return input_ids, attention_mask
 
         train_dataset = DummyDataset(size=1000, seq_len=config.data_config.max_sequence_length)
         val_dataset = DummyDataset(size=100, seq_len=config.data_config.max_sequence_length)
-
         return train_dataset, val_dataset
-
-    # Real data loading (when data files exist)
-    print(f"Loading data from {data_dir}...")
-
-    # Create tokenizer
-    tokenizer = create_dummy_tokenizer(config.model_config.vocab_size)
-
-    # Create data sources
-    # TODO: Implement proper data source weights based on config
-    sources = []
-    for txt_file in data_dir.rglob("*.txt"):
-        source = TextFileSource(name=txt_file.stem, paths=[str(txt_file)], weight=1.0)
-        sources.append(source)
-
-    if not sources:
-        raise ValueError(f"No .txt files found in {data_dir}")
 
     print(f"Found {len(sources)} data sources")
 
@@ -149,7 +147,6 @@ def create_datasets(config: TrainingConfig):
     train_sources = sources[:split_idx] if split_idx > 0 else sources
     val_sources = sources[split_idx:] if split_idx < len(sources) else sources[:1]
 
-    # Create datasets
     train_dataset = CausalLMDataset(
         tokenizer=tokenizer,
         sources=train_sources,
@@ -245,6 +242,8 @@ def main():
     print(f"LR scheduler: {config.lr_scheduler_type}")
     print(f"Mixed precision: {config.use_amp} ({config.amp_dtype if config.use_amp else 'N/A'})")
     print(f"Device: {config.device}")
+    if config.tokenizer_path:
+        print(f"Tokenizer path: {config.tokenizer_path}")
     print(f"Max epochs: {config.max_epochs}")
     if config.max_steps:
         print(f"Max steps: {config.max_steps}")

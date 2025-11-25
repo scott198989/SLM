@@ -109,6 +109,8 @@ class TrainingConfig:
     # Model and data
     model_config: Optional[HavocConfig] = None
     data_config: Optional[DataMixtureConfig] = None
+    tokenizer_path: Optional[str] = None
+    data_sources: Optional[list] = None
 
     # Training hyperparameters
     batch_size: int = 8

@@ -1,16 +1,10 @@
-# HAVOC-7B Default Training Configuration
-#
-# This config is optimized for single-GPU training with reasonable defaults.
-# Adjust based on your hardware and dataset size.
+# HAVOC-7B Default Training Configuration (RTX 5090 Optimized)
 
-# ============================================================================
-# Model Configuration
-# ============================================================================
 model:
   vocab_size: 70000
   d_model: 4096
   num_layers: 32
-  max_seq_len: 4096
+  max_seq_len: 2048         # 🔻 Reduced for VRAM
   dropout: 0.0
   layer_norm_eps: 1.0e-5
   initializer_range: 0.02
@@ -21,112 +15,65 @@ model:
   attention:
     num_heads: 32
     head_dim: 128
-    num_kv_heads: 8  # Grouped-Query Attention (8 KV heads for 32 Q heads = 4x ratio)
-    rotary_dim: null  # null = use full head_dim
+    num_kv_heads: 8
+    rotary_dim: null
     rope_theta: 10000.0
 
   mlp:
-    hidden_dim: 11008  # ~2.7x d_model for SwiGLU
+    hidden_dim: 11008
     activation: swiglu
 
-# ============================================================================
-# Data Configuration
-# ============================================================================
 data:
-  # Data mixture ratios (should sum to 1.0)
-  domain_ratio: 0.6     # Math, stats, engineering, DOE, materials science
-  general_ratio: 0.3    # General knowledge, reasoning, world knowledge
-  dialog_ratio: 0.1     # Conversational data, instruction following
+  domain_ratio: 0.6
+  general_ratio: 0.3
+  dialog_ratio: 0.1
+  max_sequence_length: 2048     # 🔻 Reduce activation memory
 
-  max_sequence_length: 4096
+tokenizer_path: artifacts/tokenizer
 
-# ============================================================================
-# Training Hyperparameters
-# ============================================================================
+data_sources:
+  - name: general_grounding
+    type: jsonl
+    paths:
+      - data/general/havoc_general_grounding_6510.jsonl
+      - data/general/conversational_3500.jsonl
+      - data/general/general_knowledge_5000.jsonl
+    weight: 1.0
 
-# Batch configuration
-batch_size: 4                      # Per-device batch size
-gradient_accumulation_steps: 8     # Effective batch = 4 * 8 = 32
+# === TRAINING ===
 
-# Training duration
+batch_size: 1                        # 🔻 Critical
+gradient_accumulation_steps: 32      # 🔼 Keep effective batch = 32
+
 max_epochs: 3
-max_steps: null  # If set, overrides max_epochs. null = train for full epochs
+max_steps: null
 
-# Optimizer
-learning_rate: 3.0e-4    # Peak learning rate
-weight_decay: 0.1        # Weight decay for AdamW
-max_grad_norm: 1.0       # Gradient clipping threshold
+learning_rate: 3.0e-4
+weight_decay: 0.1
+max_grad_norm: 1.0
 
-# Learning rate schedule
-warmup_steps: 2000                 # Linear warmup steps
-lr_scheduler_type: cosine          # Options: "cosine", "linear", "constant"
-min_learning_rate: 3.0e-5          # Minimum LR at end of decay
+warmup_steps: 10                     # 🔻 Remember: you're doing short test runs
+lr_scheduler_type: cosine
+min_learning_rate: 3.0e-5
 
-# ============================================================================
-# Mixed Precision Training
-# ============================================================================
 use_amp: true
-amp_dtype: bfloat16  # Options: "bfloat16" (recommended for A100/H100), "float16"
+amp_dtype: bfloat16
 
-# ============================================================================
-# Checkpointing
-# ============================================================================
 checkpoint_dir: checkpoints
-save_every_n_steps: 1000           # Save checkpoint every N steps
-keep_last_n_checkpoints: 3         # Keep only last N checkpoints to save disk space
-resume_from_checkpoint: null       # Path to checkpoint to resume from
+save_every_n_steps: 200              # 🔻 More frequent for single-GPU
+keep_last_n_checkpoints: 3
+resume_from_checkpoint: null
 
-# ============================================================================
-# Validation & Evaluation
-# ============================================================================
-eval_every_n_steps: 500            # Run validation every N steps
-eval_samples: 100                  # Number of batches to use for validation
-log_eval_examples: 1               # Number of validation examples to log per eval
-example_prompt_length: 64          # Max prompt tokens to feed to generator when logging examples
-example_max_new_tokens: 32         # Max new tokens to generate for logged examples
+eval_every_n_steps: 200
+eval_samples: 100
+log_eval_examples: 1
+example_prompt_length: 64
+example_max_new_tokens: 32
 
-# ============================================================================
-# Logging
-# ============================================================================
-log_every_n_steps: 10              # Log training metrics every N steps
+log_every_n_steps: 10
 log_dir: logs
-log_json_metrics: true             # Write metrics.jsonl alongside console logs
-use_tensorboard: false             # Enable TensorBoard logging if tensorboard is installed
+log_json_metrics: true
+use_tensorboard: false
 
-# ============================================================================
-# Device & Reproducibility
-# ============================================================================
-device: cuda  # Options: "cuda", "cpu"
+device: cuda
 seed: 42
-
-# ============================================================================
-# Hardware-Specific Recommendations
-# ============================================================================
-#
-# For different GPU configurations:
-#
-# 1. Single RTX 3090 / RTX 4090 (24GB VRAM):
-#    batch_size: 2
-#    gradient_accumulation_steps: 16
-#    use_amp: true
-#    amp_dtype: bfloat16
-#
-# 2. Single A100 40GB:
-#    batch_size: 4
-#    gradient_accumulation_steps: 8
-#    use_amp: true
-#    amp_dtype: bfloat16
-#
-# 3. Single A100 80GB:
-#    batch_size: 8
-#    gradient_accumulation_steps: 4
-#    use_amp: true
-#    amp_dtype: bfloat16
-#
-# 4. CPU (for testing only, very slow):
-#    batch_size: 1
-#    gradient_accumulation_steps: 1
-#    use_amp: false
-#    device: cpu
-#
-# ============================================================================
