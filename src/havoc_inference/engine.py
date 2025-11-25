@@ -10,6 +10,7 @@ from torch.cuda.amp import autocast
 
 from havoc_core.config import HavocConfig, InferenceConfig
 from havoc_core.model.transformer import HavocModel
+from havoc_core.tokenizer.tokenizer import HavocTokenizer, load_tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +31,9 @@ class InferenceEngine:
         self.config = config
         self.device = torch.device(config.device if torch.cuda.is_available() else "cpu")
 
-        # Load model
+        # Load model and tokenizer
         self.model = self._load_model()
         self.model.eval()
-
-        # Tokenizer (placeholder - will be replaced with real SentencePiece tokenizer)
         self.tokenizer = self._create_tokenizer()
 
         logger.info(f"Inference engine initialized on {self.device}")
@@ -45,33 +44,57 @@ class InferenceEngine:
         if self.config.model_config is None:
             self.config.model_config = HavocConfig.havoc_7b()
 
+        # Prefer safetensors if present
+        checkpoint_path = Path(self.config.checkpoint_path) if self.config.checkpoint_path else None
         model = HavocModel(self.config.model_config)
 
-        # Load checkpoint if provided
-        if self.config.checkpoint_path is not None:
-            checkpoint_path = Path(self.config.checkpoint_path)
+        if checkpoint_path:
+            resolved_model_path = None
             if checkpoint_path.is_dir():
-                # Load from checkpoint directory
-                model_path = checkpoint_path / "model.pt"
+                safetensors_path = checkpoint_path / "model.safetensors"
+                pt_path = checkpoint_path / "model.pt"
+                if safetensors_path.exists():
+                    resolved_model_path = safetensors_path
+                elif pt_path.exists():
+                    resolved_model_path = pt_path
             else:
-                # Load from model file directly
-                model_path = checkpoint_path
+                resolved_model_path = checkpoint_path
 
-            if model_path.exists():
-                logger.info(f"Loading model from {model_path}")
-                state_dict = torch.load(model_path, map_location=self.device)
-                model.load_state_dict(state_dict)
+            if resolved_model_path and resolved_model_path.exists():
+                logger.info(f"Loading model from {resolved_model_path}")
+                if resolved_model_path.suffix == ".safetensors":
+                    try:
+                        from safetensors.torch import load_file  # type: ignore
+
+                        state_dict = load_file(str(resolved_model_path), device=str(self.device))
+                        model.load_state_dict(state_dict)
+                    except ImportError:
+                        logger.warning(
+                            "safetensors not installed; cannot load .safetensors checkpoint. "
+                            "Install safetensors or provide a .pt checkpoint."
+                        )
+                else:
+                    state_dict = torch.load(resolved_model_path, map_location=self.device)
+                    model.load_state_dict(state_dict)
             else:
-                logger.warning(f"Checkpoint not found: {model_path}. Using randomly initialized model.")
+                logger.warning(
+                    "Checkpoint not found at %s. Using randomly initialized weights.",
+                    resolved_model_path or checkpoint_path,
+                )
 
         model.to(self.device)
         return model
 
     def _create_tokenizer(self):
-        """
-        Create tokenizer.
-        TODO: Replace with actual SentencePiece tokenizer.
-        """
+        """Create tokenizer, falling back to a simple dummy tokenizer if artifacts are missing."""
+        tok_path = getattr(self.config, "tokenizer_path", None)
+        if tok_path and Path(tok_path).exists():
+            try:
+                logger.info("Loading tokenizer from %s", tok_path)
+                return load_tokenizer(tok_path)
+            except Exception as exc:  # pragma: no cover - best effort fallback
+                logger.warning("Failed to load tokenizer at %s: %s. Falling back to dummy.", tok_path, exc)
+
         class DummyTokenizer:
             def __init__(self, vocab_size: int):
                 self.vocab_size = vocab_size
@@ -81,26 +104,23 @@ class InferenceEngine:
                 self.unk_token_id = 3
 
             def encode(self, text: str) -> list[int]:
-                # Simple character-level encoding for demo
                 tokens = [self.bos_token_id]
                 for char in text[:100]:
                     tokens.append(min(ord(char) % self.vocab_size, self.vocab_size - 1))
+                tokens.append(self.eos_token_id)
                 return tokens
 
             def decode(self, tokens: list[int]) -> str:
-                # Simple character-level decoding for demo
                 chars = []
                 for token_id in tokens:
-                    if token_id == self.bos_token_id:
+                    if token_id in (self.bos_token_id, self.pad_token_id):
                         continue
-                    elif token_id == self.eos_token_id:
+                    if token_id == self.eos_token_id:
                         break
-                    elif token_id == self.pad_token_id:
-                        continue
-                    else:
-                        chars.append(chr(token_id % 128))
+                    chars.append(chr(token_id % 128))
                 return "".join(chars)
 
+        logger.warning("Using dummy tokenizer. Provide tokenizer artifacts at tokenizer_path for real decoding.")
         return DummyTokenizer(self.config.model_config.vocab_size)
 
     def generate(
@@ -131,11 +151,13 @@ class InferenceEngine:
             Generated text
         """
         # Use config defaults if not provided
-        max_new_tokens = max_new_tokens or self.config.max_new_tokens
-        temperature = temperature or self.config.temperature
-        top_p = top_p or self.config.top_p
-        top_k = top_k or self.config.top_k
-        repetition_penalty = repetition_penalty or self.config.repetition_penalty
+        max_new_tokens = max_new_tokens if max_new_tokens is not None else self.config.max_new_tokens
+        temperature = temperature if temperature is not None else self.config.temperature
+        top_p = top_p if top_p is not None else self.config.top_p
+        top_k = top_k if top_k is not None else self.config.top_k
+        repetition_penalty = (
+            repetition_penalty if repetition_penalty is not None else self.config.repetition_penalty
+        )
         do_sample = do_sample if do_sample is not None else self.config.do_sample
 
         # Encode prompt
@@ -185,11 +207,13 @@ class InferenceEngine:
             Generated text tokens one at a time
         """
         # Use config defaults if not provided
-        max_new_tokens = max_new_tokens or self.config.max_new_tokens
-        temperature = temperature or self.config.temperature
-        top_p = top_p or self.config.top_p
-        top_k = top_k or self.config.top_k
-        repetition_penalty = repetition_penalty or self.config.repetition_penalty
+        max_new_tokens = max_new_tokens if max_new_tokens is not None else self.config.max_new_tokens
+        temperature = temperature if temperature is not None else self.config.temperature
+        top_p = top_p if top_p is not None else self.config.top_p
+        top_k = top_k if top_k is not None else self.config.top_k
+        repetition_penalty = (
+            repetition_penalty if repetition_penalty is not None else self.config.repetition_penalty
+        )
         do_sample = do_sample if do_sample is not None else self.config.do_sample
 
         # Encode prompt
@@ -199,6 +223,7 @@ class InferenceEngine:
         # Generate tokens one at a time
         past_key_values = None
         generated_tokens = []
+        running_text = ""
 
         for _ in range(max_new_tokens):
             # Forward pass
@@ -245,13 +270,13 @@ class InferenceEngine:
 
             # Decode and yield
             token_text = self.tokenizer.decode([next_token.item()])
+            running_text += token_text
             yield token_text
 
             # Check for stop sequences
             if stop_sequences:
-                full_text = self.tokenizer.decode(generated_tokens)
                 for stop_seq in stop_sequences:
-                    if stop_seq in full_text:
+                    if stop_seq and stop_seq in running_text:
                         return
 
     def _generate_tokens(

@@ -180,6 +180,12 @@ def main():
         help="Path to checkpoint directory to resume from",
     )
     parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Checkpoint directory to load (alias for --resume).",
+    )
+    parser.add_argument(
         "--device",
         type=str,
         default=None,
@@ -211,8 +217,8 @@ def main():
     config = load_config_from_yaml(args.config)
 
     # Override config with CLI arguments
-    if args.resume:
-        config.resume_from_checkpoint = args.resume
+    if args.resume or args.checkpoint:
+        config.resume_from_checkpoint = args.resume or args.checkpoint
     if args.device:
         config.device = args.device
     if args.batch_size:
@@ -242,6 +248,7 @@ def main():
     print(f"Max epochs: {config.max_epochs}")
     if config.max_steps:
         print(f"Max steps: {config.max_steps}")
+    print(f"Log eval examples: {config.log_eval_examples}")
     print("=" * 80 + "\n")
 
     # Create datasets

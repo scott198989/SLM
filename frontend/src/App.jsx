@@ -65,6 +65,8 @@ function App() {
     setMessages([...newMessages, assistantMessage])
     setIsGenerating(true)
     setError(null)
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     try {
       // Use chat endpoint with streaming
@@ -73,6 +75,7 @@ function App() {
         {
           ...settings,
           stream: true,
+          signal: controller.signal,
         }
       )
 
@@ -97,9 +100,7 @@ function App() {
   }
 
   const handleStop = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
+    abortControllerRef.current?.abort()
     setIsGenerating(false)
   }
 

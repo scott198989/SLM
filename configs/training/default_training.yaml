@@ -81,12 +81,17 @@ resume_from_checkpoint: null       # Path to checkpoint to resume from
 # ============================================================================
 eval_every_n_steps: 500            # Run validation every N steps
 eval_samples: 100                  # Number of batches to use for validation
+log_eval_examples: 1               # Number of validation examples to log per eval
+example_prompt_length: 64          # Max prompt tokens to feed to generator when logging examples
+example_max_new_tokens: 32         # Max new tokens to generate for logged examples
 
 # ============================================================================
 # Logging
 # ============================================================================
 log_every_n_steps: 10              # Log training metrics every N steps
 log_dir: logs
+log_json_metrics: true             # Write metrics.jsonl alongside console logs
+use_tensorboard: false             # Enable TensorBoard logging if tensorboard is installed
 
 # ============================================================================
 # Device & Reproducibility

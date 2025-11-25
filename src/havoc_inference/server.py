@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from starlette.concurrency import iterate_in_threadpool
 
 from havoc_core.config import InferenceConfig
 from havoc_inference.engine import InferenceEngine
@@ -148,12 +149,25 @@ def create_app(config: InferenceConfig) -> FastAPI:
 
     @app.get("/health", response_model=HealthResponse, tags=["Health"])
     async def health():
-        """Health check endpoint."""
+        """Liveness endpoint."""
         if inference_engine is None:
             raise HTTPException(status_code=503, detail="Inference engine not initialized")
 
         return HealthResponse(
             status="ok",
+            model="havoc-7b",
+            device=str(inference_engine.device),
+            timestamp=time.time(),
+        )
+
+    @app.get("/health/ready", response_model=HealthResponse, tags=["Health"])
+    async def ready():
+        """Readiness endpoint."""
+        if inference_engine is None:
+            raise HTTPException(status_code=503, detail="Inference engine not initialized")
+
+        return HealthResponse(
+            status="ready",
             model="havoc-7b",
             device=str(inference_engine.device),
             timestamp=time.time(),
@@ -171,8 +185,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
 
         try:
             if request.stream:
-                # Streaming response
-                async def generate_stream():
+                def token_iterator():
                     for token in inference_engine.generate_stream(
                         prompt=request.prompt,
                         max_new_tokens=request.max_new_tokens,
@@ -184,10 +197,13 @@ def create_app(config: InferenceConfig) -> FastAPI:
                         stop_sequences=request.stop_sequences,
                     ):
                         yield f"data: {token}\n\n"
-                        await asyncio.sleep(0)  # Allow other tasks to run
                     yield "data: [DONE]\n\n"
 
-                return StreamingResponse(generate_stream(), media_type="text/event-stream")
+                return StreamingResponse(
+                    iterate_in_threadpool(token_iterator()),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+                )
             else:
                 # Non-streaming response
                 generated_text = inference_engine.generate(
@@ -215,6 +231,11 @@ def create_app(config: InferenceConfig) -> FastAPI:
             logger.error(f"Error in completion: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
+    @app.post("/generate", response_model=CompletionResponse, tags=["Completion"])
+    async def generate_alias(request: CompletionRequest):
+        """Alias for /completion to satisfy tooling that expects /generate."""
+        return await completion(request)
+
     @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
     async def chat(request: ChatRequest):
         """
@@ -230,8 +251,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
             prompt = format_chat_prompt(request.messages)
 
             if request.stream:
-                # Streaming response
-                async def generate_stream():
+                def token_iterator():
                     for token in inference_engine.generate_stream(
                         prompt=prompt,
                         max_new_tokens=request.max_new_tokens,
@@ -243,10 +263,13 @@ def create_app(config: InferenceConfig) -> FastAPI:
                         stop_sequences=request.stop_sequences,
                     ):
                         yield f"data: {token}\n\n"
-                        await asyncio.sleep(0)  # Allow other tasks to run
                     yield "data: [DONE]\n\n"
 
-                return StreamingResponse(generate_stream(), media_type="text/event-stream")
+                return StreamingResponse(
+                    iterate_in_threadpool(token_iterator()),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+                )
             else:
                 # Non-streaming response
                 generated_text = inference_engine.generate(

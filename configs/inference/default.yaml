@@ -1,0 +1,45 @@
+# Alias configuration for inference to match expected path.
+# Mirrors configs/inference/default_inference.yaml.
+
+model:
+  vocab_size: 70000
+  d_model: 4096
+  num_layers: 32
+  max_seq_len: 4096
+  dropout: 0.0
+  layer_norm_eps: 1.0e-5
+  initializer_range: 0.02
+  pad_token_id: 0
+  bos_token_id: 1
+  eos_token_id: 2
+
+  attention:
+    num_heads: 32
+    head_dim: 128
+    num_kv_heads: 8
+    rotary_dim: null
+    rope_theta: 10000.0
+
+  mlp:
+    hidden_dim: 11008
+    activation: swiglu
+
+checkpoint_path: null
+
+max_new_tokens: 512
+temperature: 0.7
+top_p: 0.9
+top_k: 50
+repetition_penalty: 1.1
+do_sample: true
+
+host: 0.0.0.0
+port: 8000
+max_batch_size: 8
+max_concurrent_requests: 100
+
+device: cuda
+use_amp: true
+amp_dtype: bfloat16
+
+tokenizer_path: artifacts/tokenizer

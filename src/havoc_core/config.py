@@ -137,10 +137,15 @@ class TrainingConfig:
     # Validation
     eval_every_n_steps: int = 500
     eval_samples: int = 100
+    log_eval_examples: int = 1
+    example_prompt_length: int = 64
+    example_max_new_tokens: int = 32
 
     # Logging
     log_every_n_steps: int = 10
     log_dir: str = "logs"
+    log_json_metrics: bool = True
+    use_tensorboard: bool = False
 
     # Device
     device: str = "cuda"

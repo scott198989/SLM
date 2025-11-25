@@ -23,6 +23,7 @@ export class HavocAPI {
       doSample = true,
       stream = false,
       stopSequences = null,
+      signal = undefined,
     } = options
 
     const body = {
@@ -41,7 +42,7 @@ export class HavocAPI {
     }
 
     if (stream) {
-      return this._streamCompletion(body)
+      return this._streamCompletion(body, signal)
     }
 
     const response = await fetch(`${this.baseUrl}/completion`, {
@@ -50,6 +51,7 @@ export class HavocAPI {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal,
     })
 
     if (!response.ok) {
@@ -70,6 +72,7 @@ export class HavocAPI {
       doSample = true,
       stream = false,
       stopSequences = null,
+      signal = undefined,
     } = options
 
     const body = {
@@ -88,7 +91,7 @@ export class HavocAPI {
     }
 
     if (stream) {
-      return this._streamChat(body)
+      return this._streamChat(body, signal)
     }
 
     const response = await fetch(`${this.baseUrl}/chat`, {
@@ -97,6 +100,7 @@ export class HavocAPI {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal,
     })
 
     if (!response.ok) {
@@ -107,13 +111,14 @@ export class HavocAPI {
     return await response.json()
   }
 
-  async *_streamCompletion(body) {
+  async *_streamCompletion(body, signal) {
     const response = await fetch(`${this.baseUrl}/completion`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal,
     })
 
     if (!response.ok) {
@@ -149,13 +154,14 @@ export class HavocAPI {
     }
   }
 
-  async *_streamChat(body) {
+  async *_streamChat(body, signal) {
     const response = await fetch(`${this.baseUrl}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal,
     })
 
     if (!response.ok) {

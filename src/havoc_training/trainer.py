@@ -7,7 +7,7 @@ import os
 import random
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
@@ -35,7 +35,7 @@ class Trainer:
     - Gradient accumulation & clipping
     - Checkpoint save/load/resume
     - Training & validation loops
-    - Logging
+    - Logging (console, JSONL, TensorBoard)
     """
 
     def __init__(
@@ -68,11 +68,17 @@ class Trainer:
         self.global_step = 0
         self.current_epoch = 0
         self.best_val_loss = float("inf")
+        self.total_training_steps: Optional[int] = None
 
         # Optimizer, scheduler, scaler (initialized in setup_training)
         self.optimizer: Optional[AdamW] = None
         self.scheduler: Optional[LambdaLR] = None
         self.scaler: Optional[GradScaler] = None
+        self.writer = None
+
+        # Logging artifacts
+        self.metrics_file = Path(self.config.log_dir) / "metrics.jsonl"
+        self.example_log_file = Path(self.config.log_dir) / "val_examples.jsonl"
 
         # Setup directories
         os.makedirs(config.checkpoint_dir, exist_ok=True)
@@ -101,6 +107,37 @@ class Trainer:
             ],
         )
 
+        # Structured metrics logging (TensorBoard + JSONL)
+        try:
+            if getattr(self.config, "use_tensorboard", False):
+                from torch.utils.tensorboard import SummaryWriter
+
+                self.writer = SummaryWriter(log_dir=self.config.log_dir)
+        except Exception as exc:  # pragma: no cover - tensorboard is optional
+            logger.warning("TensorBoard unavailable (%s). Falling back to JSON logs only.", exc)
+            self.writer = None
+
+        self.metrics_file.parent.mkdir(parents=True, exist_ok=True)
+        if getattr(self.config, "log_json_metrics", True):
+            self.metrics_file.touch(exist_ok=True)
+        self.example_log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    def _estimate_total_steps(self, steps_per_epoch: Optional[int] = None) -> Optional[int]:
+        """Estimate total optimizer steps for scheduling."""
+        if self.config.max_steps is not None:
+            return self.config.max_steps
+
+        if self.train_dataset is None:
+            return None
+
+        if steps_per_epoch is None:
+            steps_per_epoch = math.ceil(len(self.train_dataset) / max(1, self.config.batch_size))
+
+        optimizer_steps_per_epoch = math.ceil(
+            steps_per_epoch / max(1, self.config.gradient_accumulation_steps)
+        )
+        return optimizer_steps_per_epoch * self.config.max_epochs
+
     def setup_training(self) -> None:
         """Initialize optimizer, scheduler, and gradient scaler."""
         # Optimizer: AdamW with weight decay
@@ -115,6 +152,7 @@ class Trainer:
                 "weight_decay": 0.0,
             },
         ]
+        self.total_training_steps = self._estimate_total_steps()
         self.optimizer = AdamW(
             optimizer_grouped_parameters,
             lr=self.config.learning_rate,
@@ -123,36 +161,39 @@ class Trainer:
         )
 
         # Learning rate scheduler
-        self.scheduler = self._create_scheduler()
+        self.scheduler = self._create_scheduler(self.total_training_steps)
 
         # Gradient scaler for mixed precision
         if self.config.use_amp:
             self.scaler = GradScaler()
 
-        logger.info(f"Training setup complete:")
+        # Ensure gradients are zeroed before training starts/resumes
+        self.optimizer.zero_grad(set_to_none=True)
+
+        logger.info("Training setup complete:")
         logger.info(f"  Device: {self.device}")
         logger.info(f"  Model parameters: {sum(p.numel() for p in self.model.parameters()) / 1e9:.2f}B")
-        logger.info(f"  Optimizer: AdamW")
+        logger.info("  Optimizer: AdamW")
         logger.info(f"  Learning rate: {self.config.learning_rate}")
         logger.info(f"  Scheduler: {self.config.lr_scheduler_type}")
-        logger.info(f"  Mixed precision: {self.config.use_amp} ({self.config.amp_dtype if self.config.use_amp else 'N/A'})")
+        logger.info(
+            f"  Mixed precision: {self.config.use_amp} ({self.config.amp_dtype if self.config.use_amp else 'N/A'})"
+        )
 
-    def _create_scheduler(self) -> LambdaLR:
+    def _create_scheduler(self, total_steps: Optional[int] = None) -> LambdaLR:
         """Create learning rate scheduler with warmup and decay."""
+        total_steps = total_steps or self._estimate_total_steps()
+        total_steps = max(total_steps or 1, 1)
+
         def lr_lambda(current_step: int) -> float:
             # Warmup
             if current_step < self.config.warmup_steps:
                 return current_step / max(1, self.config.warmup_steps)
 
             # Calculate progress after warmup
-            if self.config.max_steps is not None:
-                total_steps = self.config.max_steps
-            else:
-                # Estimate total steps from epochs
-                steps_per_epoch = len(self.train_dataset) // (self.config.batch_size * self.config.gradient_accumulation_steps)
-                total_steps = steps_per_epoch * self.config.max_epochs
-
-            progress = (current_step - self.config.warmup_steps) / max(1, total_steps - self.config.warmup_steps)
+            progress = (current_step - self.config.warmup_steps) / max(
+                1, total_steps - self.config.warmup_steps
+            )
             progress = min(1.0, progress)
 
             # Apply decay schedule
@@ -168,6 +209,23 @@ class Trainer:
                 return 1.0
 
         return LambdaLR(self.optimizer, lr_lambda)
+
+    def _log_metrics(self, split: str, metrics: Dict[str, Any], step: int) -> None:
+        """Log metrics to JSONL and TensorBoard."""
+        metrics_record: Dict[str, Any] = {"split": split, "step": step}
+        metrics_record.update(metrics)
+
+        if getattr(self.config, "log_json_metrics", True):
+            try:
+                with open(self.metrics_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(metrics_record) + "\n")
+            except Exception as exc:  # pragma: no cover - best effort
+                logger.debug("Failed to write metrics JSON: %s", exc)
+
+        if self.writer:
+            for key, value in metrics.items():
+                if isinstance(value, (int, float)):
+                    self.writer.add_scalar(f"{split}/{key}", value, step)
 
     def train(self) -> None:
         """Main training loop."""
@@ -189,6 +247,14 @@ class Trainer:
             num_workers=0,
             pin_memory=True,
         )
+        steps_per_epoch = len(train_loader)
+        if self.total_training_steps is None:
+            self.total_training_steps = self._estimate_total_steps(steps_per_epoch)
+            self.scheduler = self._create_scheduler(self.total_training_steps)
+
+        total_optim_steps = math.ceil(
+            steps_per_epoch / max(1, self.config.gradient_accumulation_steps)
+        ) * self.config.max_epochs
 
         logger.info("=" * 80)
         logger.info("Starting training")
@@ -196,47 +262,67 @@ class Trainer:
         logger.info(f"  Batch size: {self.config.batch_size}")
         logger.info(f"  Gradient accumulation steps: {self.config.gradient_accumulation_steps}")
         logger.info(f"  Effective batch size: {self.config.batch_size * self.config.gradient_accumulation_steps}")
-        logger.info(f"  Total optimization steps: {len(train_loader) * self.config.max_epochs // self.config.gradient_accumulation_steps}")
+        logger.info(f"  Total optimization steps: {total_optim_steps}")
         logger.info("=" * 80)
 
         self.model.train()
         accumulated_loss = 0.0
+        accumulation_count = 0
 
         for epoch in range(self.current_epoch, self.config.max_epochs):
             self.current_epoch = epoch
             logger.info(f"\n--- Epoch {epoch + 1}/{self.config.max_epochs} ---")
 
             for step, batch in enumerate(train_loader):
+                if self.config.max_steps is not None and self.global_step >= self.config.max_steps:
+                    logger.info(f"Reached max_steps ({self.config.max_steps}). Stopping training.")
+                    return
+
                 # Forward pass and loss calculation
                 loss = self._training_step(batch, step)
                 accumulated_loss += loss
+                accumulation_count += 1
 
                 # Update weights every gradient_accumulation_steps
-                if (step + 1) % self.config.gradient_accumulation_steps == 0:
+                is_update_step = (
+                    accumulation_count % self.config.gradient_accumulation_steps == 0
+                    or step == len(train_loader) - 1
+                )
+
+                if is_update_step:
                     self._optimizer_step()
                     self.global_step += 1
 
+                    avg_loss = accumulated_loss / max(1, accumulation_count)
+                    current_lr = self.scheduler.get_last_lr()[0]
+                    accumulated_loss = 0.0
+                    accumulation_count = 0
+
                     # Logging
                     if self.global_step % self.config.log_every_n_steps == 0:
-                        avg_loss = accumulated_loss / self.config.gradient_accumulation_steps
-                        current_lr = self.scheduler.get_last_lr()[0]
                         logger.info(
                             f"Step {self.global_step:6d} | "
                             f"Epoch {epoch + 1} | "
                             f"Loss: {avg_loss:.4f} | "
                             f"LR: {current_lr:.2e}"
                         )
-                        accumulated_loss = 0.0
+                        self._log_metrics(
+                            "train",
+                            {"loss": avg_loss, "lr": current_lr, "epoch": epoch + 1},
+                            self.global_step,
+                        )
 
                     # Validation
                     if self.val_dataset is not None and self.global_step % self.config.eval_every_n_steps == 0:
-                        val_loss, val_perplexity = self.evaluate()
+                        val_loss, val_perplexity = self.evaluate(log_metrics=True)
                         logger.info(
                             f"Validation | "
                             f"Step {self.global_step:6d} | "
                             f"Loss: {val_loss:.4f} | "
                             f"Perplexity: {val_perplexity:.2f}"
                         )
+                        if val_loss < self.best_val_loss:
+                            self.best_val_loss = val_loss
                         self.model.train()
 
                     # Checkpoint saving
@@ -248,6 +334,9 @@ class Trainer:
                         logger.info(f"Reached max_steps ({self.config.max_steps}). Stopping training.")
                         return
 
+        if self.writer:
+            self.writer.flush()
+            self.writer.close()
         logger.info("\n" + "=" * 80)
         logger.info("Training complete!")
         logger.info("=" * 80)
@@ -267,14 +356,14 @@ class Trainer:
         if self.config.use_amp:
             dtype = torch.bfloat16 if self.config.amp_dtype == "bfloat16" else torch.float16
             with autocast(dtype=dtype):
-                logits, _ = self.model(input_ids, attention_mask=None)
+                logits, _ = self.model(input_ids, attention_mask=attention_mask)
                 loss = F.cross_entropy(
                     logits.reshape(-1, logits.size(-1)),
                     labels.reshape(-1),
                     ignore_index=self.model.config.pad_token_id,
                 )
         else:
-            logits, _ = self.model(input_ids, attention_mask=None)
+            logits, _ = self.model(input_ids, attention_mask=attention_mask)
             loss = F.cross_entropy(
                 logits.reshape(-1, logits.size(-1)),
                 labels.reshape(-1),
@@ -313,9 +402,9 @@ class Trainer:
         self.scheduler.step()
 
         # Zero gradients
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=True)
 
-    def evaluate(self) -> tuple[float, float]:
+    def evaluate(self, log_metrics: bool = True) -> tuple[float, float]:
         """Evaluate model on validation set."""
         if self.val_dataset is None:
             logger.warning("No validation dataset provided. Skipping evaluation.")
@@ -332,6 +421,8 @@ class Trainer:
 
         total_loss = 0.0
         total_tokens = 0
+        examples_logged = 0
+        tokenizer = getattr(self.val_dataset, "tokenizer", None)
 
         with torch.no_grad():
             for i, batch in enumerate(val_loader):
@@ -341,6 +432,8 @@ class Trainer:
                 input_ids, attention_mask = batch
                 input_ids = input_ids.to(self.device)
                 attention_mask = attention_mask.to(self.device)
+                original_attention_mask = attention_mask
+                original_input_ids = input_ids
 
                 # Shift targets
                 labels = input_ids[:, 1:].contiguous()
@@ -348,7 +441,7 @@ class Trainer:
                 attention_mask = attention_mask[:, :-1].contiguous()
 
                 # Forward pass
-                logits, _ = self.model(input_ids, attention_mask=None)
+                logits, _ = self.model(input_ids, attention_mask=attention_mask)
 
                 # Calculate loss
                 loss = F.cross_entropy(
@@ -363,8 +456,21 @@ class Trainer:
                 total_loss += loss.item()
                 total_tokens += num_tokens
 
+                # Optionally log a few decoded examples
+                if self.config.log_eval_examples and examples_logged < self.config.log_eval_examples:
+                    examples_logged += self._log_examples(
+                        original_input_ids, original_attention_mask, tokenizer=tokenizer
+                    )
+
         avg_loss = total_loss / total_tokens if total_tokens > 0 else 0.0
         perplexity = math.exp(avg_loss) if avg_loss < 10 else float("inf")
+
+        if log_metrics:
+            self._log_metrics(
+                "val",
+                {"loss": avg_loss, "perplexity": perplexity, "epoch": self.current_epoch + 1},
+                self.global_step,
+            )
 
         return avg_loss, perplexity
 
@@ -402,6 +508,7 @@ class Trainer:
         with open(checkpoint_path / "config.json", "w") as f:
             # Convert dataclass to dict for JSON serialization
             import dataclasses
+
             config_dict = dataclasses.asdict(self.config)
             json.dump(config_dict, f, indent=2)
 
@@ -413,13 +520,18 @@ class Trainer:
     def _cleanup_checkpoints(self) -> None:
         """Remove old checkpoints, keeping only the last N."""
         checkpoint_dir = Path(self.config.checkpoint_dir)
-        checkpoints = sorted(
-            [d for d in checkpoint_dir.iterdir() if d.is_dir() and d.name.startswith("checkpoint_")],
-            key=lambda x: int(x.name.split("_")[-1]),
-        )
+        checkpoints: list[tuple[int, Path]] = []
+        for d in checkpoint_dir.iterdir():
+            if not d.is_dir() or not d.name.startswith("checkpoint_"):
+                continue
+            suffix = d.name.rsplit("_", 1)[-1]
+            if suffix.isdigit():
+                checkpoints.append((int(suffix), d))
+
+        checkpoints.sort(key=lambda x: x[0])
 
         if len(checkpoints) > self.config.keep_last_n_checkpoints:
-            for checkpoint in checkpoints[:-self.config.keep_last_n_checkpoints]:
+            for _, checkpoint in checkpoints[:-self.config.keep_last_n_checkpoints]:
                 logger.info(f"Removing old checkpoint: {checkpoint}")
                 shutil.rmtree(checkpoint)
 
@@ -455,4 +567,77 @@ class Trainer:
                 self.current_epoch = training_state["current_epoch"]
                 self.best_val_loss = training_state["best_val_loss"]
 
+        if self.optimizer is not None:
+            self.optimizer.zero_grad(set_to_none=True)
+
         logger.info(f"Checkpoint loaded. Resuming from step {self.global_step}, epoch {self.current_epoch}")
+
+    def _decode_tokens(self, tokens: list[int], tokenizer: Optional[Any]) -> str:
+        """Decode tokens to text if tokenizer is available."""
+        if tokenizer is not None and hasattr(tokenizer, "decode"):
+            try:
+                return tokenizer.decode(tokens, skip_special_tokens=True)
+            except Exception:  # pragma: no cover - best effort
+                pass
+        # Fallback: space-separated token IDs
+        preview = tokens[: self.config.example_prompt_length + self.config.example_max_new_tokens]
+        return " ".join(str(t) for t in preview)
+
+    def _log_examples(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        tokenizer: Optional[Any] = None,
+    ) -> int:
+        """Log a handful of validation examples with model completions."""
+        logged = 0
+        num_examples = min(self.config.log_eval_examples, input_ids.size(0))
+
+        for idx in range(num_examples):
+            prompt_ids = input_ids[idx]
+            prompt_mask = attention_mask[idx] if attention_mask is not None else None
+            prompt_len = int(prompt_mask.sum().item()) if prompt_mask is not None else prompt_ids.shape[0]
+            prompt_len = max(1, min(prompt_len, self.config.example_prompt_length))
+
+            prompt_tokens = prompt_ids[:prompt_len].unsqueeze(0).to(self.device)
+            try:
+                generated = self.model.generate(
+                    prompt_tokens,
+                    max_new_tokens=self.config.example_max_new_tokens,
+                )
+            except RuntimeError as exc:
+                logger.warning("Skipping example generation due to error: %s", exc)
+                break
+
+            generated_tokens = generated[0].detach().cpu().tolist()
+            prompt_token_list = prompt_tokens[0].detach().cpu().tolist()
+            prompt_text = self._decode_tokens(prompt_token_list, tokenizer)
+            generated_text = self._decode_tokens(generated_tokens, tokenizer)
+
+            example_record = {
+                "step": self.global_step,
+                "prompt_tokens": prompt_token_list,
+                "generated_tokens": generated_tokens,
+                "prompt_text": prompt_text,
+                "generated_text": generated_text,
+            }
+
+            try:
+                with open(self.example_log_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(example_record) + "\n")
+            except Exception as exc:  # pragma: no cover - best effort
+                logger.debug("Failed to write example log: %s", exc)
+
+            logger.info(
+                "Example %d | Prompt: %s | Completion: %s",
+                idx + 1,
+                prompt_text[:200],
+                generated_text[:200],
+            )
+
+            if self.writer:
+                self.writer.add_text(f"val/example_{idx + 1}", generated_text, self.global_step)
+
+            logged += 1
+
+        return logged
