@@ -252,9 +252,15 @@ class Trainer:
             self.total_training_steps = self._estimate_total_steps(steps_per_epoch)
             self.scheduler = self._create_scheduler(self.total_training_steps)
 
-        total_optim_steps = math.ceil(
+        optim_steps_per_epoch = math.ceil(
             steps_per_epoch / max(1, self.config.gradient_accumulation_steps)
-        ) * self.config.max_epochs
+        )
+        if self.config.max_epochs is not None:
+            total_optim_steps = optim_steps_per_epoch * self.config.max_epochs
+        elif self.config.max_steps is not None:
+            total_optim_steps = self.config.max_steps
+        else:
+            total_optim_steps = optim_steps_per_epoch
 
         logger.info("=" * 80)
         logger.info("Starting training")
