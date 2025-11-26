@@ -11,7 +11,7 @@ from havoc_core.mlp import MLPConfig
 class HavocConfig:
     vocab_size: int = 70000
     d_model: int = 3072
-    num_layers: int = 24
+    num_layers: int = 22
     max_seq_len: int = 2048
     attention: AttentionConfig = field(default_factory=AttentionConfig)
     mlp: MLPConfig = field(default_factory=MLPConfig)
@@ -132,7 +132,7 @@ class TrainingConfig:
     data_sources: Optional[list] = None
 
     # Training hyperparameters
-    batch_size: int = 8
+    batch_size: int = 1
     gradient_accumulation_steps: int = 4
     max_epochs: Optional[int] = 10
     max_steps: Optional[int] = None
@@ -147,7 +147,7 @@ class TrainingConfig:
 
     # Mixed precision
     use_amp: bool = True
-    amp_dtype: str = "bfloat16"  # "bfloat16" or "float16"
+    amp_dtype: str = "float16"  # "bfloat16" or "float16"
 
     # Checkpointing
     checkpoint_dir: str = "checkpoints"

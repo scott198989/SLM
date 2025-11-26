@@ -58,7 +58,7 @@ class GQAttention(nn.Module):
         attn_cfg: AttentionConfig = config.attention
         self.num_heads = attn_cfg.num_heads
         self.num_kv_heads = attn_cfg.num_kv_heads
-        self.head_dim = attn_cfg.head_dim
+        self.head_dim = attn_cfg.head_dim or (config.d_model // attn_cfg.num_heads)
         self.hidden_size = config.d_model
 
         self.q_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)

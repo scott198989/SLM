@@ -90,18 +90,12 @@ def create_datasets(config: TrainingConfig):
     Create training and validation datasets.
 
     """
-    # Tokenizer: prefer trained tokenizer, fallback to dummy for dry runs
-    tokenizer = None
-    if config.tokenizer_path:
-        tok_path = Path(config.tokenizer_path)
-        if tok_path.exists():
-            tokenizer = load_tokenizer(str(tok_path))
-            print(f"Loaded tokenizer from {tok_path}")
-        else:
-            print(f"WARNING: tokenizer_path {tok_path} not found. Falling back to dummy tokenizer.")
-    if tokenizer is None:
-        tokenizer = create_dummy_tokenizer(config.model_config.vocab_size)
-        print("Using dummy tokenizer (character-level). Train and provide a real tokenizer for production.")
+    # Tokenizer: require trained tokenizer
+    tok_path = Path(config.tokenizer_path or "")
+    if not tok_path.exists():
+        raise FileNotFoundError(f"tokenizer_path {tok_path} not found. Train or provide a tokenizer.")
+    tokenizer = load_tokenizer(str(tok_path))
+    print(f"Loaded tokenizer from {tok_path}")
 
     # Build sources
     sources: list[DataSource] = []
@@ -163,6 +157,7 @@ def create_datasets(config: TrainingConfig):
 
 
 def main():
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     parser = argparse.ArgumentParser(description="Train HAVOC-7B model")
     parser.add_argument(
         "--config",

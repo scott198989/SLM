@@ -25,13 +25,13 @@ class HavocModel(nn.Module):
         # Init
         self._init_weights()
 
-        # Parameter count validation (must stay within 3.0B–3.3B)
+        # Parameter count validation (must stay within 2.8B-3.2B)
         total_params = sum(p.numel() for p in self.parameters())
         total_params_b = total_params / 1e9
         print(f"Model parameters: {total_params_b:.2f}B")
-        if not (3.0 <= total_params_b <= 3.3):
+        if not (2.8 <= total_params_b <= 3.2):
             raise ValueError(
-                f"Model parameter count {total_params_b:.2f}B outside target range 3.0B–3.3B"
+                f"Model parameter count {total_params_b:.2f}B outside target range 2.8B-3.2B"
             )
 
     def forward(

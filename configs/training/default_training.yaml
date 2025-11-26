@@ -3,7 +3,7 @@
 model:
   vocab_size: 70000
   d_model: 3072
-  num_layers: 24
+  num_layers: 22
   max_seq_len: 2048         # 🔻 Reduced for VRAM
   dropout: 0.0
   layer_norm_eps: 1.0e-5
@@ -14,13 +14,13 @@ model:
 
   attention:
     num_heads: 24
-    head_dim: 128
-    num_kv_heads: 6
+    head_dim: null
+    num_kv_heads: 4
     rotary_dim: null
     rope_theta: 10000.0
 
   mlp:
-    hidden_dim: 11008
+    hidden_dim: 12288
     activation: swiglu
 
 data:
@@ -41,7 +41,7 @@ data_sources:
 # === TRAINING ===  (H100 Optimized – JR Brain Build)
 
 batch_size: 1
-gradient_accumulation_steps: 64        # H100 can handle big effective batch
+gradient_accumulation_steps: 4        # H100 can handle big effective batch
 
 max_epochs: null
 max_steps: 24000                       # SWEET SPOT for 6510 samples
@@ -55,7 +55,7 @@ lr_scheduler_type: cosine
 min_learning_rate: 2.0e-5              # slower landing so it doesn’t forget
 
 use_amp: true
-amp_dtype: bfloat16                    # H100 sweet spot
+amp_dtype: float16                    # H100 sweet spot
 
 checkpoint_dir: checkpoints
 save_every_n_steps: 500
