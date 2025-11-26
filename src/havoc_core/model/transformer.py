@@ -6,10 +6,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from havoc_core.model.blocks import RMSNorm, TransformerBlock
+from havoc_core.config import HavocConfig
 
 
 class HavocModel(nn.Module):
-    def __init__(self, config: Any):
+    def __init__(self, config: HavocConfig):
         super().__init__()
         self.config = config
 

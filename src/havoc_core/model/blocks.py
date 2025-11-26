@@ -142,9 +142,15 @@ class SwiGLU(nn.Module):
         self.w1 = nn.Linear(config.d_model, hidden_dim, bias=False)
         self.w2 = nn.Linear(config.d_model, hidden_dim, bias=False)
         self.w3 = nn.Linear(hidden_dim, config.d_model, bias=False)
+        self.activation = getattr(config.mlp, "activation", "swiglu").lower()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.w3(F.silu(self.w1(x)) * self.w2(x))
+        if self.activation == "swiglu":
+            hidden = F.silu(self.w1(x)) * self.w2(x)
+        else:
+            act_fn = getattr(F, self.activation, F.gelu)
+            hidden = act_fn(self.w1(x)) * self.w2(x)
+        return self.w3(hidden)
 
 
 class TransformerBlock(nn.Module):
