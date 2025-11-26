@@ -41,7 +41,7 @@ data_sources:
 # === TRAINING ===  (H100 Optimized – JR Brain Build)
 
 batch_size: 1
-gradient_accumulation_steps: 4        # H100 can handle big effective batch
+gradient_accumulation_steps: 4
 
 max_epochs: null
 max_steps: 24000                       # SWEET SPOT for 6510 samples
@@ -55,7 +55,7 @@ lr_scheduler_type: cosine
 min_learning_rate: 2.0e-5              # slower landing so it doesn’t forget
 
 use_amp: true
-amp_dtype: float16                    # H100 sweet spot
+amp_dtype: float16
 
 checkpoint_dir: checkpoints
 save_every_n_steps: 500
