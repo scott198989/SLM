@@ -27,6 +27,7 @@ from havoc_training.trainer import Trainer
 
 def load_config_from_yaml(config_path: str) -> TrainingConfig:
     """Load training configuration from YAML file."""
+    base_dir = Path("/workspace/SLM")
     with open(config_path, "r") as f:
         config_dict = yaml.safe_load(f)
 
@@ -59,6 +60,25 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
         del config_dict["data"]
 
     config = TrainingConfig(**config_dict)
+
+    # Resolve key paths to absolute under /workspace/SLM
+    def _abs(path_str: str | None) -> str | None:
+        if path_str is None:
+            return None
+        p = Path(path_str)
+        return str(p if p.is_absolute() else (base_dir / p))
+
+    config.checkpoint_dir = _abs(config.checkpoint_dir) or str(base_dir / "checkpoints")
+    config.log_dir = _abs(config.log_dir) or str(base_dir / "logs")
+    config.tokenizer_path = _abs(config.tokenizer_path) or str(base_dir / "artifacts/tokenizer")
+    if config.resume_from_checkpoint:
+        config.resume_from_checkpoint = _abs(config.resume_from_checkpoint)
+    if config.data_sources:
+        for ds in config.data_sources:
+            paths = ds.get("paths") or []
+            if isinstance(paths, str):
+                paths = [paths]
+            ds["paths"] = [_abs(p) for p in paths]
 
     # Hard guard to prevent stale 6B configs from sneaking in
     mc = config.model_config
@@ -109,21 +129,19 @@ def create_datasets(config: TrainingConfig):
     Create training and validation datasets.
 
     """
-    # Tokenizer: prefer trained tokenizer, but fall back to dummy to avoid blocking training
+    # Tokenizer: require trained tokenizer
     tok_path = Path(config.tokenizer_path or "")
-    if tok_path.exists():
-        tokenizer = load_tokenizer(str(tok_path))
-        print(f"Loaded tokenizer from {tok_path}")
-    else:
-        print(f"WARNING: tokenizer_path {tok_path} not found. Falling back to dummy tokenizer.")
-        tokenizer = create_dummy_tokenizer(config.model_config.vocab_size)
+    if not tok_path.exists():
+        raise FileNotFoundError(f"tokenizer_path {tok_path} not found. Train or provide a tokenizer.")
+    print(f"Using tokenizer from: {tok_path}")
+    tokenizer = load_tokenizer(str(tok_path))
 
     # Build sources
     sources: list[DataSource] = []
     if config.data_sources:
         sources = load_sources(config.data_sources)
     else:
-        data_dir = Path("data")
+        data_dir = Path("/workspace/SLM/data")
         if data_dir.exists():
             # Collect .txt and .jsonl files under data/
             txt_files = list(data_dir.rglob("*.txt"))
@@ -222,6 +240,18 @@ def main():
         default=None,
         help="Maximum training steps. Overrides config.",
     )
+    parser.add_argument(
+        "--max-seq-len",
+        type=int,
+        default=None,
+        help="Override max sequence length for model/data.",
+    )
+    parser.add_argument(
+        "--tokenizer-path",
+        type=str,
+        default="/workspace/SLM/artifacts/tokenizer",
+        help="Path to tokenizer directory (absolute).",
+    )
 
     args = parser.parse_args()
 
@@ -240,8 +270,33 @@ def main():
         config.learning_rate = args.learning_rate
     if args.max_steps:
         config.max_steps = args.max_steps
+    if args.tokenizer_path:
+        config.tokenizer_path = args.tokenizer_path
+    if args.max_seq_len:
+        config.model_config.max_seq_len = args.max_seq_len
+        if config.data_config:
+            config.data_config.max_sequence_length = args.max_seq_len
 
-    # Print configuration
+    # Re-resolve key paths after overrides
+    base_dir = Path("/workspace/SLM")
+    def _abs(path_str: str | None) -> str | None:
+        if path_str is None:
+            return None
+        p = Path(path_str)
+        return str(p if p.is_absolute() else (base_dir / p))
+    config.checkpoint_dir = _abs(config.checkpoint_dir) or str(base_dir / "checkpoints")
+    config.log_dir = _abs(config.log_dir) or str(base_dir / "logs")
+    config.tokenizer_path = _abs(config.tokenizer_path) or str(base_dir / "artifacts/tokenizer")
+    if config.resume_from_checkpoint:
+        config.resume_from_checkpoint = _abs(config.resume_from_checkpoint)
+    if config.data_sources:
+        for ds in config.data_sources:
+            paths = ds.get("paths") or []
+            if isinstance(paths, str):
+                paths = [paths]
+            ds["paths"] = [_abs(p) for p in paths]
+
+    # Print configuration with resolved paths
     print("\n" + "=" * 80)
     print("HAVOC-7B Training Configuration")
     print("=" * 80)
@@ -264,6 +319,8 @@ def main():
     if config.max_steps:
         print(f"Max steps: {config.max_steps}")
     print(f"Log eval examples: {config.log_eval_examples}")
+    print(f"Resolved checkpoint_dir: {config.checkpoint_dir}")
+    print(f"Resolved log_dir: {config.log_dir}")
     print("=" * 80 + "\n")
 
     # Create datasets

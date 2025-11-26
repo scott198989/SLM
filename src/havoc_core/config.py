@@ -47,7 +47,7 @@ class TokenizerTrainingConfig:
         ]
     )
     input_files: List[str] = field(default_factory=list)
-    output_dir: str = "artifacts/tokenizer"
+    output_dir: str = "/workspace/SLM/artifacts/tokenizer"
     character_coverage: float = 0.9995
     max_sentence_length: int = 2048
     normalize_text: bool = True
@@ -120,7 +120,7 @@ class InferenceConfig:
     amp_dtype: str = "bfloat16"
 
     # Tokenizer
-    tokenizer_path: str = "artifacts/tokenizer"
+    tokenizer_path: str = "/workspace/SLM/artifacts/tokenizer"
 
 
 @dataclass
@@ -128,14 +128,14 @@ class TrainingConfig:
     # Model and data
     model_config: Optional[HavocConfig] = None
     data_config: Optional[DataMixtureConfig] = None
-    tokenizer_path: Optional[str] = None
+    tokenizer_path: Optional[str] = "/workspace/SLM/artifacts/tokenizer"
     data_sources: Optional[list] = None
 
     # Training hyperparameters
     batch_size: int = 1
     gradient_accumulation_steps: int = 4
     max_epochs: Optional[int] = 10
-    max_steps: Optional[int] = None
+    max_steps: Optional[int] = 8000
     learning_rate: float = 3e-4
     weight_decay: float = 0.1
     warmup_steps: int = 2000
@@ -150,7 +150,7 @@ class TrainingConfig:
     amp_dtype: str = "float16"  # "bfloat16" or "float16"
 
     # Checkpointing
-    checkpoint_dir: str = "checkpoints"
+    checkpoint_dir: str = "/workspace/SLM/checkpoints"
     save_every_n_steps: int = 1000
     keep_last_n_checkpoints: int = 3
     resume_from_checkpoint: Optional[str] = None
@@ -164,7 +164,7 @@ class TrainingConfig:
 
     # Logging
     log_every_n_steps: int = 10
-    log_dir: str = "logs"
+    log_dir: str = "/workspace/SLM/logs"
     log_json_metrics: bool = True
     use_tensorboard: bool = False
 

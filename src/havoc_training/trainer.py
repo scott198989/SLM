@@ -80,9 +80,16 @@ class Trainer:
         self.metrics_file = Path(self.config.log_dir) / "metrics.jsonl"
         self.example_log_file = Path(self.config.log_dir) / "val_examples.jsonl"
 
-        # Setup directories
-        os.makedirs(config.checkpoint_dir, exist_ok=True)
-        os.makedirs(config.log_dir, exist_ok=True)
+        # Setup directories (ensure absolute under /workspace/SLM by default)
+        base_dir = Path("/workspace/SLM")
+        def _abs(p: str) -> str:
+            path = Path(p)
+            return str(path if path.is_absolute() else (base_dir / path))
+
+        self.config.checkpoint_dir = _abs(config.checkpoint_dir)
+        self.config.log_dir = _abs(config.log_dir)
+        os.makedirs(self.config.checkpoint_dir, exist_ok=True)
+        os.makedirs(self.config.log_dir, exist_ok=True)
 
         # Setup logging
         self._setup_logging()
