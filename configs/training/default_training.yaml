@@ -2,9 +2,9 @@
 
 model:
   vocab_size: 70000
-  d_model: 4096
-  num_layers: 32
-  max_seq_len: 512         # 🔻 Reduced for VRAM
+  d_model: 3072
+  num_layers: 24
+  max_seq_len: 2048         # 🔻 Reduced for VRAM
   dropout: 0.0
   layer_norm_eps: 1.0e-5
   initializer_range: 0.02
@@ -13,9 +13,9 @@ model:
   eos_token_id: 2
 
   attention:
-    num_heads: 32
+    num_heads: 24
     head_dim: 128
-    num_kv_heads: 8
+    num_kv_heads: 6
     rotary_dim: null
     rope_theta: 10000.0
 
@@ -27,7 +27,7 @@ data:
   domain_ratio: 0.6
   general_ratio: 0.3
   dialog_ratio: 0.1
-  max_sequence_length: 512     # 🔻 Reduce activation memory
+  max_sequence_length: 2048     # 🔻 Reduce activation memory
 
 tokenizer_path: artifacts/tokenizer
 

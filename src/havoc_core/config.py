@@ -10,9 +10,9 @@ from havoc_core.mlp import MLPConfig
 @dataclass
 class HavocConfig:
     vocab_size: int = 70000
-    d_model: int = 4096
-    num_layers: int = 32
-    max_seq_len: int = 4096
+    d_model: int = 3072
+    num_layers: int = 24
+    max_seq_len: int = 2048
     attention: AttentionConfig = field(default_factory=AttentionConfig)
     mlp: MLPConfig = field(default_factory=MLPConfig)
     dropout: float = 0.0
@@ -58,7 +58,7 @@ class DataMixtureConfig:
     domain_ratio: float = 0.6
     general_ratio: float = 0.3
     dialog_ratio: float = 0.1
-    max_sequence_length: int = 4096
+    max_sequence_length: int = 2048
     samples_per_epoch: int = 1024
     pack_sequences: bool = True
     add_bos: bool = True

@@ -24,6 +24,15 @@ class HavocModel(nn.Module):
         # Init
         self._init_weights()
 
+        # Parameter count validation (must stay within 3.0B–3.3B)
+        total_params = sum(p.numel() for p in self.parameters())
+        total_params_b = total_params / 1e9
+        print(f"Model parameters: {total_params_b:.2f}B")
+        if not (3.0 <= total_params_b <= 3.3):
+            raise ValueError(
+                f"Model parameter count {total_params_b:.2f}B outside target range 3.0B–3.3B"
+            )
+
     def forward(
         self,
         input_ids: torch.Tensor,
