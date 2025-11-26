@@ -106,47 +106,38 @@ def generate_reply(model, tokenizer, conversation, system_prompt, max_new_tokens
 
     return raw
 
+# Chat loop
 
-# -----------------------------------------------------
-# Chat Loop
-# -----------------------------------------------------
 def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
-    system_prompt = (
-        "SYSTEM: You are HAVOC, a small experimental model created by Scott Tuschl. "
-        "You respond in short, weird, semi-coherent sentences. DO NOT simply repeat Scott."
-    )
-
-    conversation = []
     print("Type 'quit' to exit.\n")
 
     while True:
-        try:
-            msg = input("You: ").strip()
-        except EOFError:
-            print("\nExiting.")
-            break
-
+        msg = input("You: ").strip()
         if msg.lower() in {"quit", "exit", "q"}:
             print("Goodnight.")
             break
 
-        if not msg:
-            continue
+        # Pure continuation prompt
+        prompt = msg  # no "You:", no "HAVOC:", nothing
 
-        conversation.append(f"You: {msg}")
+        ids = tokenizer.encode(prompt, add_bos=True, add_eos=False)
+        ids = torch.tensor([ids], dtype=torch.long, device=device)
 
-        reply = generate_reply(
-            model=model,
-            tokenizer=tokenizer,
-            conversation=conversation,
-            system_prompt=system_prompt,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-            device=device,
-        )
+        with torch.no_grad():
+            out = model.generate(
+                prompt_ids=ids,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+            )
 
-        print(f"HAVOC: {reply}\n")
-        conversation.append(f"HAVOC: {reply}")
+        new_tokens = out[0, ids.shape[1]:].tolist()
+        text = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+
+        if text == "":
+            text = "(mumbles)"
+
+        print(f"HAVOC: {text}\n")
+
 
 
 # -----------------------------------------------------
