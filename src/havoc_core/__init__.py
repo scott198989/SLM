@@ -4,18 +4,18 @@ This module contains the core model architecture, configuration classes,
 and tokenizer utilities for the HAVOC-7B transformer model.
 """
 
+from havoc_core.attention import AttentionConfig
+from havoc_core.mlp import MLPConfig
 from havoc_core.config import (
-    AttentionConfig,
-    DataMixtureConfig,
-    EvalConfig,
     HavocConfig,
+    DataMixtureConfig,
+    TokenizerTrainingConfig,
+    TrainingConfig,
+    EvalConfig,
     InferenceConfig,
-    MLPConfig,
     RAGConfig,
     SRSConfig,
-    TokenizerTrainingConfig,
     ToolConfig,
-    TrainingConfig,
 )
 from havoc_core.model.transformer import HavocModel
 from havoc_core.model.blocks import (
@@ -30,15 +30,15 @@ __all__ = [
     # Config classes
     "AttentionConfig",
     "DataMixtureConfig",
-    "EvalConfig",
     "HavocConfig",
-    "InferenceConfig",
     "MLPConfig",
+    "TokenizerTrainingConfig",
+    "TrainingConfig",
+    "EvalConfig",
+    "InferenceConfig",
     "RAGConfig",
     "SRSConfig",
-    "TokenizerTrainingConfig",
     "ToolConfig",
-    "TrainingConfig",
     # Model classes
     "HavocModel",
     "RMSNorm",

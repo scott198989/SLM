@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from havoc_core.config import HavocConfig
 from havoc_core.model.blocks import RMSNorm, TransformerBlock
 
 
 class HavocModel(nn.Module):
-    def __init__(self, config: HavocConfig):
+    def __init__(self, config: Any):
         super().__init__()
         self.config = config
 

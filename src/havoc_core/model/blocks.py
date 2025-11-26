@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from havoc_core.config import AttentionConfig, HavocConfig, MLPConfig
+from havoc_core.attention import AttentionConfig
+from havoc_core.mlp import MLPConfig
 
 
 class RMSNorm(nn.Module):
@@ -51,7 +52,7 @@ class AttentionOutput:
 
 
 class GQAttention(nn.Module):
-    def __init__(self, config: HavocConfig):
+    def __init__(self, config: Any):
         super().__init__()
         self.config = config
         attn_cfg: AttentionConfig = config.attention
@@ -135,7 +136,7 @@ class GQAttention(nn.Module):
 
 
 class SwiGLU(nn.Module):
-    def __init__(self, config: HavocConfig):
+    def __init__(self, config: Any):
         super().__init__()
         hidden_dim = config.mlp.hidden_dim
         self.w1 = nn.Linear(config.d_model, hidden_dim, bias=False)
@@ -147,7 +148,7 @@ class SwiGLU(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, config: HavocConfig):
+    def __init__(self, config: Any):
         super().__init__()
         self.attn_norm = RMSNorm(config.d_model, eps=config.layer_norm_eps)
         self.attn = GQAttention(config)

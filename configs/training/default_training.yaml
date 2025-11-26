@@ -32,35 +32,33 @@ data:
 tokenizer_path: artifacts/tokenizer
 
 data_sources:
-  - name: general_grounding
+  - name: grounding
     type: jsonl
     paths:
       - data/general/havoc_general_grounding_6510.jsonl
-      - data/general/conversational_3500.jsonl
-      - data/general/general_knowledge_5000.jsonl
     weight: 1.0
 
-# === TRAINING ===  (Night Run – RTX 5090 Optimized)
+# === TRAINING ===  (H100 Optimized – JR Brain Build)
 
-batch_size: 1                        # 🟩 Safe for 32GB VRAM
-gradient_accumulation_steps: 32      # 🟩 Effective batch = 32
+batch_size: 1
+gradient_accumulation_steps: 64        # H100 can handle big effective batch
 
-max_epochs: null                     # 🟥 We use steps instead
-max_steps: 10000                     # 🟩 Let it cook all night
+max_epochs: null
+max_steps: 24000                       # SWEET SPOT for 6510 samples
 
-learning_rate: 3.0e-4
-weight_decay: 0.1
+learning_rate: 2.5e-4                  # slightly lower LR for small dataset
+weight_decay: 0.15                     # mild regularization to prevent overfit
 max_grad_norm: 1.0
 
-warmup_steps: 500                    # 🟩 Better for long training
+warmup_steps: 1500                     # longer warmup = stable H100 training
 lr_scheduler_type: cosine
-min_learning_rate: 3.0e-5
+min_learning_rate: 2.0e-5              # slower landing so it doesn’t forget
 
 use_amp: true
-amp_dtype: bfloat16
+amp_dtype: bfloat16                    # H100 sweet spot
 
 checkpoint_dir: checkpoints
-save_every_n_steps: 500              # 🟩 Save often enough not to lose shit
+save_every_n_steps: 500
 keep_last_n_checkpoints: 5
 resume_from_checkpoint: null
 
