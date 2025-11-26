@@ -109,12 +109,14 @@ def create_datasets(config: TrainingConfig):
     Create training and validation datasets.
 
     """
-    # Tokenizer: require trained tokenizer
+    # Tokenizer: prefer trained tokenizer, but fall back to dummy to avoid blocking training
     tok_path = Path(config.tokenizer_path or "")
-    if not tok_path.exists():
-        raise FileNotFoundError(f"tokenizer_path {tok_path} not found. Train or provide a tokenizer.")
-    tokenizer = load_tokenizer(str(tok_path))
-    print(f"Loaded tokenizer from {tok_path}")
+    if tok_path.exists():
+        tokenizer = load_tokenizer(str(tok_path))
+        print(f"Loaded tokenizer from {tok_path}")
+    else:
+        print(f"WARNING: tokenizer_path {tok_path} not found. Falling back to dummy tokenizer.")
+        tokenizer = create_dummy_tokenizer(config.model_config.vocab_size)
 
     # Build sources
     sources: list[DataSource] = []
