@@ -275,9 +275,14 @@ class Trainer:
         accumulated_loss = 0.0
         accumulation_count = 0
 
-        for epoch in range(self.current_epoch, self.config.max_epochs):
+        epoch = self.current_epoch
+        while True:
+            if self.config.max_epochs is not None and epoch >= self.config.max_epochs:
+                break
+
             self.current_epoch = epoch
-            logger.info(f"\n--- Epoch {epoch + 1}/{self.config.max_epochs} ---")
+            epoch_label = epoch + 1
+            logger.info(f"\n--- Epoch {epoch_label}/{self.config.max_epochs or '∞'} ---")
 
             for step, batch in enumerate(train_loader):
                 if self.config.max_steps is not None and self.global_step >= self.config.max_steps:
@@ -308,7 +313,7 @@ class Trainer:
                     if self.global_step % self.config.log_every_n_steps == 0:
                         logger.info(
                             f"Step {self.global_step:6d} | "
-                            f"Epoch {epoch + 1} | "
+                            f"Epoch {epoch_label} | "
                             f"Loss: {avg_loss:.4f} | "
                             f"LR: {current_lr:.2e}"
                         )
@@ -319,7 +324,11 @@ class Trainer:
                         )
 
                     # Validation
-                    if self.val_dataset is not None and self.global_step % self.config.eval_every_n_steps == 0:
+                    if (
+                        self.val_dataset is not None
+                        and self.config.eval_every_n_steps
+                        and self.global_step % self.config.eval_every_n_steps == 0
+                    ):
                         val_loss, val_perplexity = self.evaluate(log_metrics=True)
                         logger.info(
                             f"Validation | "
@@ -339,6 +348,9 @@ class Trainer:
                     if self.config.max_steps is not None and self.global_step >= self.config.max_steps:
                         logger.info(f"Reached max_steps ({self.config.max_steps}). Stopping training.")
                         return
+
+            # Advance to next epoch when training continues
+            epoch += 1
 
         if self.writer:
             self.writer.flush()
