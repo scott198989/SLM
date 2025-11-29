@@ -1,0 +1,14 @@
+model:
+  checkpoint_dir: "/workspace/SLM/checkpoints"
+  tokenizer_path: "/workspace/SLM/artifacts/tokenizer"
+  max_seq_len: 2048
+
+training:
+  instruct_path: "/workspace/SLM/data/instruct_final.jsonl"
+  batch_size: 4
+  microbatch_size: 1
+  lr: 5e-5
+  total_steps: 6000
+  save_every: 500
+  log_every: 20
+  bfloat16: true

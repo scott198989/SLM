@@ -1,0 +1,26 @@
+model:
+  dim: 2560
+  n_layers: 32
+  n_heads: 32
+  vocab_size: 70000
+  max_seq_len: 2048
+
+training:
+  train_path: "/workspace/SLM/data/train.jsonl"
+  valid_path: "/workspace/SLM/data/valid.jsonl"
+  batch_size: 8
+  microbatch_size: 1
+  lr: 3e-4
+  warmup_steps: 400
+  total_steps: 20000
+  save_every: 1000
+  log_every: 50
+  bfloat16: true
+
+optimizer:
+  weight_decay: 0.1
+  betas: [0.9, 0.95]
+
+checkpointing:
+  out_dir: "/workspace/SLM/checkpoints"
+  keep_last: 5
