@@ -81,24 +81,25 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
             ds["paths"] = [_abs(p) for p in paths]
 
     # Hard guard to prevent stale 6B configs from sneaking in
- # Force YAML dict → HavocConfig object
-if isinstance(config.model_config, dict):
-    config.model_config = HavocConfig(**config.model_config)
+    # Force YAML dict → HavocConfig object
+    if isinstance(config.model_config, dict):
+        config.model_config = HavocConfig(**config.model_config)
 
-mc = config.model_config
+    mc = config.model_config
 
-if mc is None:
+    if mc is None:
         raise ValueError("model_config missing after YAML load")
+
     if not (
         mc.d_model == 3072
         and mc.num_layers == 22
-        and getattr(mc.attention, "num_heads", None) == 24
+        and getattr(mc.attention, "num_heads", None) == 32
         and getattr(mc.attention, "num_kv_heads", None) == 4
         and getattr(mc.mlp, "hidden_dim", None) == 12288
     ):
         raise ValueError(
-            "Loaded model_config does not match required 3B settings "
-            "(d_model=3072, num_layers=22, num_heads=24, num_kv_heads=4, mlp.hidden_dim=12288). "
+            "Loaded model_config does not match required HAVOC 3B settings "
+            "(d_model=3072, num_layers=22, num_heads=32, num_kv_heads=4, mlp.hidden_dim=12288). "
             "Update your YAML/config."
         )
 
