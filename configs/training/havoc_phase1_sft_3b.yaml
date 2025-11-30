@@ -28,12 +28,15 @@ tokenizer:
 
 
 data:
-  train_path: sft_data/havoc_sft_phase1_full.jsonl
-  valid_path: data/valid.jsonl
-  max_seq_len: 1024
+  data_sources:
+    - paths:
+        - sft_data/havoc_sft_phase1_full.jsonl
+      weight: 1.0
+
+  max_sequence_length: 1024
+  pack_sequences: true
   add_bos: true
   add_eos: true
-  pack_sequences: true
 
 
 training:
