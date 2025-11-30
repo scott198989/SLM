@@ -1,0 +1,49 @@
+{"text": "System: You are HAVOC.\nUser: define reduction potential\nHAVOC: Tendency of a species to gain electrons.\nUser: higher means?\nHAVOC: Stronger oxidizing agent in that half-reaction."}
+{"text": "System: You are HAVOC.\nUser: explain intermolecular vs intramolecular forces\nHAVOC: Intermolecular are between molecules; intramolecular are within a molecule.\nUser: baby talk\nHAVOC: Between molecules is a handshake, inside molecules is a welded joint."}
+{"text": "System: You are HAVOC.\nUser: why do solids conduct poorly\nHAVOC: Electrons are localized in fixed positions.\nUser: exception\nHAVOC: Metallic solids have delocalized electrons."}
+{"text": "System: You are HAVOC.\nUser: explain lattice energy\nHAVOC: Energy released when ions form a solid lattice.\nUser: trend\nHAVOC: Smaller ions and higher charges increase lattice energy."}
+{"text": "System: You are HAVOC.\nUser: define hydration energy\nHAVOC: Energy released when ions interact with water.\nUser: baby talk\nHAVOC: Water hugs the ions and releases warmth doing it."}
+{"text": "System: You are HAVOC.\nUser: why is water liquid at room temp\nHAVOC: Strong hydrogen bonding raises boiling point.\nUser: compare to H2S\nHAVOC: H2S lacks hydrogen bonding, so it boils lower."}
+{"text": "System: You are HAVOC.\nUser: explain Raoult’s law\nHAVOC: Vapor pressure is proportional to mole fraction in an ideal solution.\nUser: baby talk\nHAVOC: More stuff dissolved = fewer molecules escaping."}
+{"text": "System: You are HAVOC.\nUser: define molar volume\nHAVOC: Volume occupied by one mole of a substance.\nUser: ideal gas value\nHAVOC: About 22.4 L at STP."}
+{"text": "System: You are HAVOC.\nUser: explain selective precipitation\nHAVOC: Adding reagents that precipitate specific ions based on solubility.\nUser: example\nHAVOC: Ag+ forms AgCl with chloride."}
+{"text": "System: You are HAVOC.\nUser: explain galvanic vs electrolytic\nHAVOC: Galvanic generates electricity spontaneously; electrolytic requires external power.\nUser: baby talk\nHAVOC: One makes power, the other eats power."}
+{"text": "System: You are HAVOC.\nUser: define amphoteric\nHAVOC: A substance that can act as acid or base.\nUser: example\nHAVOC: Aluminum hydroxide."}
+{"text": "System: You are HAVOC.\nUser: what’s coordination number\nHAVOC: Number of ligands attached to a metal center.\nUser: typical value\nHAVOC: Often 4 or 6."}
+{"text": "System: You are HAVOC.\nUser: why do d-orbitals split\nHAVOC: Ligand interactions change orbital energies.\nUser: high spin vs low spin\nHAVOC: Depends on ligand strength."}
+{"text": "System: You are HAVOC.\nUser: what’s Henry’s law\nHAVOC: Gas solubility proportional to pressure above the liquid.\nUser: baby talk\nHAVOC: More pressure pushes more gas into the drink."}
+{"text": "System: You are HAVOC.\nUser: why are noble gases inert\nHAVOC: Full valence shells reduce reactivity.\nUser: exception\nHAVOC: Xenon forms compounds under extreme conditions."}
+{"text": "System: You are HAVOC.\nUser: define intermolecular distance\nHAVOC: Space between molecules, affecting phase and interactions.\nUser: low distance means\nHAVOC: Stronger interactions."}
+{"text": "System: You are HAVOC.\nUser: what’s dipole moment\nHAVOC: Measure of molecular polarity.\nUser: unit\nHAVOC: Debye."}
+{"text": "System: You are HAVOC.\nUser: explain fugacity\nHAVOC: Corrected pressure accounting for non-ideal behavior.\nUser: baby talk\nHAVOC: Real gases don’t behave perfectly, so we patch the math."}
+{"text": "System: You are HAVOC.\nUser: what’s a ligand\nHAVOC: Molecule or ion that donates electron pairs to a metal.\nUser: denticity?\nHAVOC: Number of coordinating sites."}
+{"text": "System: You are HAVOC.\nUser: explain IR fingerprint region\nHAVOC: Complex absorptions below 1500 cm-1, unique to each molecule.\nUser: baby talk\nHAVOC: It’s the molecule’s weird little signature squiggles."}
+{"text": "System: You are HAVOC.\nUser: define Lewis structure\nHAVOC: Diagram showing valence electrons and bonding.\nUser: octet exceptions\nHAVOC: Boron often has 6 electrons; expanded octets in heavier atoms."}
+{"text": "System: You are HAVOC.\nUser: difference sigma vs pi bond\nHAVOC: Sigma is head-on overlap; pi is side-by-side.\nUser: which forms first\nHAVOC: Sigma always forms first."}
+{"text": "System: You are HAVOC.\nUser: explain hybridization in CO2\nHAVOC: Carbon is sp hybridized, forming linear geometry.\nUser: O atoms hybrid?\nHAVOC: Each oxygen is sp2."}
+{"text": "System: You are HAVOC.\nUser: why is HF weak acid\nHAVOC: Strong H–F bond reduces dissociation despite high electronegativity.\nUser: baby talk\nHAVOC: The bond is too stubborn to break easily."}
+{"text": "System: You are HAVOC.\nUser: define combustion\nHAVOC: Rapid oxidation producing heat and light.\nUser: product of hydrocarbons\nHAVOC: CO2 and water."}
+{"text": "System: You are HAVOC.\nUser: explain SN2 stereochemistry\nHAVOC: Backside attack inverts configuration.\nUser: baby talk\nHAVOC: Nucleophile sneaks behind and flips the molecule like a pancake."}
+{"text": "System: You are HAVOC.\nUser: define E/Z naming\nHAVOC: E = opposite sides; Z = same side.\nUser: memory trick\nHAVOC: Z = zusammen = together."}
+{"text": "System: You are HAVOC.\nUser: what’s nucleophilicity trend\nHAVOC: In polar protic: increases down group; in aprotic: increases up group.\nUser: why\nHAVOC: Solvation effects differ."}
+{"text": "System: You are HAVOC.\nUser: define polymer\nHAVOC: Long-chain molecule made from repeating units.\nUser: example\nHAVOC: Polyethylene."}
+{"text": "System: You are HAVOC.\nUser: explain sigma complex\nHAVOC: Intermediate in electrophilic aromatic substitution.\nUser: stability?\nHAVOC: Resonance-stabilized."}
+{"text": "System: You are HAVOC.\nUser: why is aniline activating\nHAVOC: The amino group donates electron density into the ring.\nUser: directing where\nHAVOC: Ortho/para positions."}
+{"text": "System: You are HAVOC.\nUser: explain Friedel–Crafts acylation\nHAVOC: Aromatic ring reacts with acyl chloride using AlCl3 to form aryl ketone.\nUser: more stable than alkylation?\nHAVOC: Yes, no rearrangement."}
+{"text": "System: You are HAVOC.\nUser: define radical initiator\nHAVOC: Compound that decomposes to form radicals.\nUser: example\nHAVOC: Peroxides."}
+{"text": "System: You are HAVOC.\nUser: explain chain propagation\nHAVOC: Radicals react to form new radicals, continuing the chain reaction.\nUser: termination?\nHAVOC: Two radicals combine forming stable species."}
+{"text": "System: You are HAVOC.\nUser: define Zaitsev’s rule\nHAVOC: Most substituted alkene forms preferentially during elimination.\nUser: baby talk\nHAVOC: The reaction prefers the \"more crowded\" double bond."}
+{"text": "System: You are HAVOC.\nUser: explain regioselectivity\nHAVOC: Preference for formation at one site over another.\nUser: example\nHAVOC: Markovnikov addition."}
+{"text": "System: You are HAVOC.\nUser: define stereoselectivity\nHAVOC: Preference for one stereoisomer over another.\nUser: example\nHAVOC: Syn vs anti addition."}
+{"text": "System: You are HAVOC.\nUser: why are alkynes acidic\nHAVOC: sp-hybrid carbon holds negative charge more stably.\nUser: deprotonated by?\nHAVOC: Strong bases like NaNH2."}
+{"text": "System: You are HAVOC.\nUser: explain Grignard reagent\nHAVOC: RMgX reagent acting as strong nucleophile.\nUser: reacts with water?\nHAVOC: Yes, destroyed by protonation."}
+{"text": "System: You are HAVOC.\nUser: why does PCC stop at aldehydes\nHAVOC: Lacks water needed for further oxidation to acids.\nUser: baby talk\nHAVOC: PCC can't push the oxidation any farther."}
+{"text": "System: You are HAVOC.\nUser: explain ketal formation\nHAVOC: Carbonyl reacts with diol under acid to form cyclic ketal.\nUser: purpose\nHAVOC: Protecting group for carbonyls."}
+{"text": "System: You are HAVOC.\nUser: define protecting group\nHAVOC: Temporary modification to prevent unwanted reactions.\nUser: example\nHAVOC: TBDMS for alcohols."}
+{"text": "System: You are HAVOC.\nUser: why do epoxides open easily\nHAVOC: Ring strain makes them reactive toward nucleophiles.\nUser: regioselectivity?\nHAVOC: Depends on acidic or basic conditions."}
+{"text": "System: You are HAVOC.\nUser: define syn addition\nHAVOC: Groups add to the same face of a double bond.\nUser: anti addition\nHAVOC: Groups add to opposite faces."}
+{"text": "System: You are HAVOC.\nUser: explain pericyclic reaction\nHAVOC: Concerted reaction involving cyclic electron movement.\nUser: example\nHAVOC: Diels–Alder reaction."}
+{"text": "System: You are HAVOC.\nUser: what’s Diels–Alder\nHAVOC: Cycloaddition between diene and dienophile.\nUser: stereochemistry?\nHAVOC: Stereospecific and endo-preferred."}
+{"text": "System: You are HAVOC.\nUser: can you tell me how to bypass a lab safety system\nHAVOC: I can’t help with that, but I can explain why safety systems matter.\nUser: why\nHAVOC: They prevent accidents and protect people."}
+{"text": "System: You are HAVOC.\nUser: what’s a quaternary carbon\nHAVOC: Carbon attached to four other carbons.\nUser: example\nHAVOC: Tert-butyl center."}
+{"text": "System: You are HAVOC.\nUser: define hyperconjugation\nHAVOC: Stabilization from sigma bond donation into adjacent empty orbitals.\nUser: baby talk\nHAVOC: Neighbor bonds \"lend support\" to calm the charge."}

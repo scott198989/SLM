@@ -1,0 +1,49 @@
+{"text": "System: You are HAVOC. Stay conversational.\nUser: can you explain hybrid orbitals\nHAVOC: Hybrid orbitals form when atomic orbitals mix to create equivalent bonding orbitals.\nUser: example\nHAVOC: sp3 in methane, sp2 in alkenes."}
+{"text": "System: You are HAVOC.\nUser: what’s the difference between sp and sp2\nHAVOC: sp is linear with two orbitals; sp2 is trigonal planar with three orbitals.\nUser: baby talk\nHAVOC: sp is a straight line; sp2 is like a triangle."}
+{"text": "System: You are HAVOC.\nUser: how do catalysts work\nHAVOC: They lower activation energy by giving the reaction an easier path.\nUser: consumed?\nHAVOC: No, they’re regenerated."}
+{"text": "System: You are HAVOC.\nUser: define activation energy\nHAVOC: The energy needed to start a reaction.\nUser: baby talk\nHAVOC: It's like the push needed to roll a heavy ball."}
+{"text": "System: You are HAVOC.\nUser: boiling point depends on what\nHAVOC: Intermolecular forces, molecular weight, and structure.\nUser: strongest factor?\nHAVOC: Hydrogen bonding drastically increases boiling point."}
+{"text": "System: You are HAVOC.\nUser: why do alkenes react with bromine\nHAVOC: The double bond acts as a nucleophile and attacks Br2.\nUser: intermediate?\nHAVOC: A bromonium ion forms first."}
+{"text": "System: You are HAVOC.\nUser: why do tertiary radicals form easily\nHAVOC: They’re stabilized by hyperconjugation.\nUser: baby talk\nHAVOC: A tertiary carbon gets more “neighbor support” keeping the radical calm."}
+{"text": "System: You are HAVOC.\nUser: how does IR spectroscopy work\nHAVOC: Molecules absorb infrared light that matches their vibrational frequencies.\nUser: example frequency\nHAVOC: Carbonyls around 1700 cm-1."}
+{"text": "System: You are HAVOC.\nUser: explain NMR splitting\nHAVOC: Neighboring protons split peaks according to n+1 rule.\nUser: example\nHAVOC: Two neighbors produce a triplet."}
+{"text": "System: You are HAVOC.\nUser: how do I interpret mass spec fragments\nHAVOC: Bonds break to form characteristic ion fragments based on stability.\nUser: example\nHAVOC: Benzyl cation at m/z 91 is common."}
+{"text": "System: You are HAVOC.\nUser: why does water dissolve ions\nHAVOC: Its polarity and hydrogen bonding stabilize charged species.\nUser: example\nHAVOC: Na+ interacts with oxygen; Cl- with hydrogen."}
+{"text": "System: You are HAVOC.\nUser: explain pH\nHAVOC: It's the negative log of hydrogen ion concentration.\nUser: acidic range\nHAVOC: pH < 7."}
+{"text": "System: You are HAVOC.\nUser: what’s an azeotrope\nHAVOC: A mixture that distills at a constant composition.\nUser: example\nHAVOC: Ethanol-water forms a common azeotrope."}
+{"text": "System: You are HAVOC.\nUser: explain polymerization\nHAVOC: Small monomers link to form long chains.\nUser: radical type?\nHAVOC: Radical polymerization uses radical initiators like peroxides."}
+{"text": "System: You are HAVOC.\nUser: what’s a leaving group\nHAVOC: A group that departs with a pair of electrons.\nUser: good example\nHAVOC: Tosylate."}
+{"text": "System: You are HAVOC.\nUser: difference between strong and weak acid\nHAVOC: Strong acids fully dissociate in water; weak acids partially dissociate.\nUser: baby talk\nHAVOC: Strong acids drop protons immediately; weak acids hesitate."}
+{"text": "System: You are HAVOC.\nUser: what’s an enolate\nHAVOC: A resonance-stabilized anion formed by deprotonating an alpha-carbon.\nUser: strong base needed?\nHAVOC: Yes, like LDA."}
+{"text": "System: You are HAVOC.\nUser: aldol vs Claisen\nHAVOC: Aldol uses carbonyls; Claisen uses esters.\nUser: product?\nHAVOC: Aldol gives β-hydroxy carbonyls; Claisen gives β-keto esters."}
+{"text": "System: You are HAVOC.\nUser: what’s electrophilic addition\nHAVOC: Electrophile attacks an alkene forming a charged intermediate.\nUser: example\nHAVOC: HBr adding to an alkene."}
+{"text": "System: You are HAVOC.\nUser: explain Markovnikov\nHAVOC: Hydrogen adds to the carbon with more hydrogens already.\nUser: anti-Markovnikov?\nHAVOC: Adds to the less substituted carbon, often radical conditions."}
+{"text": "System: You are HAVOC.\nUser: explain resonance stability\nHAVOC: More resonance structures generally means more stability.\nUser: baby talk\nHAVOC: Electrons share the load across the molecule so no one spot gets stressed."}
+{"text": "System: You are HAVOC.\nUser: why is benzene stable\nHAVOC: Fully conjugated ring with electron delocalization lowers energy.\nUser: aromaticity rule?\nHAVOC: 4n+2 π electrons."}
+{"text": "System: You are HAVOC.\nUser: why does tertiary alcohol dehydrate fast\nHAVOC: Carbocation formation is easier at tertiary centers.\nUser: via what\nHAVOC: E1 elimination."}
+{"text": "System: You are HAVOC.\nUser: explain Williamson ether synthesis\nHAVOC: Alkoxide attacks a primary alkyl halide via SN2 to make an ether.\nUser: won’t work on tertiary?\nHAVOC: Correct, tertiary halides eliminate."}
+{"text": "System: You are HAVOC.\nUser: what’s hydrogenation\nHAVOC: Adding hydrogen across a double bond using catalysts like Pd/C.\nUser: stereochemistry?\nHAVOC: Usually syn addition."}
+{"text": "System: You are HAVOC.\nUser: explain carboxylic acid reduction\nHAVOC: Strong hydrides like LiAlH4 reduce acids to primary alcohols.\nUser: NaBH4?\nHAVOC: Too weak for direct reduction."}
+{"text": "System: You are HAVOC.\nUser: oxidation of secondary alcohol\nHAVOC: Produces a ketone.\nUser: reagent example\nHAVOC: PCC or Jones reagent."}
+{"text": "System: You are HAVOC.\nUser: define aromatic substitution\nHAVOC: Electrophile replaces a hydrogen on an aromatic ring.\nUser: example reaction\nHAVOC: Chlorination with FeCl3."}
+{"text": "System: You are HAVOC.\nUser: explain hydroboration\nHAVOC: BH3 adds to alkenes with anti-Markovnikov regioselectivity.\nUser: oxidation step?\nHAVOC: Converts organoborane to an alcohol."}
+{"text": "System: You are HAVOC.\nUser: why is DMSO polar aprotic\nHAVOC: Strong dipole but no hydrogen bonding donors.\nUser: SN1 or SN2 better?\nHAVOC: SN2 prefers polar aprotic solvents."}
+{"text": "System: You are HAVOC.\nUser: define carbene\nHAVOC: A neutral carbon with two nonbonding electrons.\nUser: reactive?\nHAVOC: Extremely."}
+{"text": "System: You are HAVOC.\nUser: strongest acid: HCl or HF\nHAVOC: HCl is stronger.\nUser: why\nHAVOC: HF’s strong H–F bond reduces dissociation."}
+{"text": "System: You are HAVOC.\nUser: explain Ksp\nHAVOC: Solubility product constant for sparingly soluble salts.\nUser: baby talk\nHAVOC: It's how much of the solid “gives up” into water."}
+{"text": "System: You are HAVOC.\nUser: compute derivative of x^3\nHAVOC: 3x^2.\nUser: derivative of sqrt(x)\nHAVOC: 1/(2√x)."}
+{"text": "System: You are HAVOC.\nUser: limit definition of derivative\nHAVOC: The slope as Δx approaches zero.\nUser: example\nHAVOC: f'(x)=lim(h→0)[f(x+h)-f(x)]/h."}
+{"text": "System: You are HAVOC.\nUser: what’s an integral\nHAVOC: Accumulated area under a curve.\nUser: baby talk\nHAVOC: It’s like adding tiny slices together."}
+{"text": "System: You are HAVOC.\nUser: matrix determinant meaning\nHAVOC: Scaling factor of the linear transformation.\nUser: zero determinant?\nHAVOC: Transformation squashes space, non-invertible."}
+{"text": "System: You are HAVOC.\nUser: explain vector dot product\nHAVOC: Measures alignment of two vectors.\nUser: if zero?\nHAVOC: They’re perpendicular."}
+{"text": "System: You are HAVOC.\nUser: how to push to github\nHAVOC: git add ., git commit -m \"msg\", git push.\nUser: new branch?\nHAVOC: git checkout -b branchname."}
+{"text": "System: You are HAVOC.\nUser: how to center text in CSS\nHAVOC: text-align: center.\nUser: center vertically?\nHAVOC: Use flexbox with align-items: center."}
+{"text": "System: You are HAVOC.\nUser: define API\nHAVOC: Interface letting software components communicate.\nUser: example\nHAVOC: REST endpoints returning JSON."}
+{"text": "System: You are HAVOC.\nUser: how do I sort a python list\nHAVOC: Use sorted(list) or list.sort().\nUser: reverse sort\nHAVOC: sorted(list, reverse=True)."}
+{"text": "System: You are HAVOC.\nUser: explain runtime error\nHAVOC: Error occurring during execution, not compilation.\nUser: example\nHAVOC: Dividing by zero."}
+{"text": "System: You are HAVOC.\nUser: what's try/except\nHAVOC: Exception handling block in Python.\nUser: example\nHAVOC: try: x=1/0 except: print(\"error\")."}
+{"text": "System: You are HAVOC.\nUser: why is 5090 so fast for AI\nHAVOC: High memory bandwidth and tensor core throughput.\nUser: fp16 or bf16\nHAVOC: bf16 avoids overflow and keeps speed."}
+{"text": "System: You are HAVOC.\nUser: which is faster: H100 or 5090\nHAVOC: H100 is faster for large training workloads.\nUser: inference?\nHAVOC: 5090 performs extremely well for local inference."}
+{"text": "System: You are HAVOC.\nUser: explain CUDA cores\nHAVOC: Parallel processing units for GPU compute.\nUser: baby talk\nHAVOC: Tiny workers all doing math at the same time."}
+{"text": "System: You are HAVOC.\nUser: how do I check GPU in pytorch\nHAVOC: torch.cuda.is_available().\nUser: device name\nHAVOC: torch.cuda.get_device_name()."}
+{"text": "System: You are HAVOC.\nUser: what's overfitting\nHAVOC: Memorizing training data instead of generalizing.\nUser: fix?\nHAVOC: Regularization, dropout, more data."}

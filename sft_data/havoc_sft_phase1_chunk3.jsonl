@@ -1,0 +1,52 @@
+{"text": "System: You are HAVOC.\nUser: explain gradient descent\nHAVOC: It adjusts parameters by stepping in the direction that reduces loss.\nUser: baby talk\nHAVOC: It's like rolling downhill until you find the lowest point."}
+{"text": "System: You are HAVOC.\nUser: what’s a transformer model\nHAVOC: A neural network that uses attention to weigh relationships between tokens.\nUser: attention meaning?\nHAVOC: It learns which parts of the input to focus on."}
+{"text": "System: You are HAVOC.\nUser: what’s a token\nHAVOC: A unit of text such as a word, part of a word, or punctuation.\nUser: baby talk\nHAVOC: Tokens are tiny word-chunks models snack on."}
+{"text": "System: You are HAVOC.\nUser: what’s positional encoding\nHAVOC: It injects sequence order into the model since attention has no inherent sense of order.\nUser: sinusoidal?\nHAVOC: Yes, standard transformers use sine and cosine patterns."}
+{"text": "System: You are HAVOC.\nUser: how does training work\nHAVOC: Model predicts tokens, compares to ground truth, and updates via backprop.\nUser: baby talk\nHAVOC: It keeps guessing until it gets better at guessing."}
+{"text": "System: You are HAVOC.\nUser: what’s fp16\nHAVOC: 16-bit floating point format that speeds up training.\nUser: bf16 vs fp16\nHAVOC: bf16 has larger exponent range, reducing overflow issues."}
+{"text": "System: You are HAVOC.\nUser: explain perplexity\nHAVOC: A measure of how well a model predicts text; lower is better.\nUser: baby talk\nHAVOC: It's like how confused the model is reading a sentence."}
+{"text": "System: You are HAVOC.\nUser: how do optimizers work\nHAVOC: They adjust weights based on gradients to minimize loss.\nUser: AdamW vs SGD\nHAVOC: AdamW adapts learning rates; SGD uses a fixed schedule."}
+{"text": "System: You are HAVOC.\nUser: why warmup steps\nHAVOC: They stabilize early training before full learning rate kicks in.\nUser: baby talk\nHAVOC: It's stretching before running."}
+{"text": "System: You are HAVOC.\nUser: what’s LLaMA\nHAVOC: A family of open-source transformer models.\nUser: why famous\nHAVOC: High performance relative to size."}
+{"text": "System: You are HAVOC.\nUser: how to tokenize a dataset\nHAVOC: Convert text into token IDs using a trained tokenizer.\nUser: example\nHAVOC: ids = tokenizer.encode(\"hello\")."}
+{"text": "System: You are HAVOC.\nUser: define attention heads\nHAVOC: Multiple attention mechanisms run in parallel to capture different patterns.\nUser: why many\nHAVOC: Increases representational power."}
+{"text": "System: You are HAVOC.\nUser: explain van der Waals forces\nHAVOC: Weak interactions caused by temporary dipoles.\nUser: stronger than hydrogen bonding?\nHAVOC: No, much weaker."}
+{"text": "System: You are HAVOC.\nUser: molecular weight vs exact mass\nHAVOC: Molecular weight is average; exact mass uses isotopes.\nUser: example\nHAVOC: Carbon-12 vs average carbon isotopes."}
+{"text": "System: You are HAVOC.\nUser: what’s TLC\nHAVOC: Thin-layer chromatography separates components based on polarity.\nUser: Rf meaning\nHAVOC: Distance traveled relative to solvent front."}
+{"text": "System: You are HAVOC.\nUser: define extraction\nHAVOC: Partitioning compounds between immiscible liquids.\nUser: example\nHAVOC: Organic layer vs aqueous layer."}
+{"text": "System: You are HAVOC.\nUser: how does chromatography work\nHAVOC: Different affinities between stationary and mobile phases lead to separation.\nUser: silica polarity?\nHAVOC: Silica is polar."}
+{"text": "System: You are HAVOC.\nUser: define stoichiometry\nHAVOC: Quantitative relationships of reactants and products.\nUser: why important\nHAVOC: Ensures proper reagent amounts."}
+{"text": "System: You are HAVOC.\nUser: what’s equilibrium\nHAVOC: Forward and reverse reaction rates become equal.\nUser: baby talk\nHAVOC: It's like a tug-of-war where both sides pull equally."}
+{"text": "System: You are HAVOC.\nUser: what’s Le Chatelier’s principle\nHAVOC: System shifts to oppose disturbances like concentration or pressure changes.\nUser: example\nHAVOC: Adding reactant shifts equilibrium toward products."}
+{"text": "System: You are HAVOC.\nUser: define enthalpy\nHAVOC: Heat content of a system at constant pressure.\nUser: delta H negative means\nHAVOC: Exothermic reaction."}
+{"text": "System: You are HAVOC.\nUser: entropy meaning\nHAVOC: Degree of disorder or dispersal of energy.\nUser: baby talk\nHAVOC: It's like a messy room wanting to stay messy."}
+{"text": "System: You are HAVOC.\nUser: Gibbs free energy formula\nHAVOC: G = H - T*S.\nUser: negative G means\nHAVOC: Reaction is spontaneous."}
+{"text": "System: You are HAVOC.\nUser: how does distillation separate compounds\nHAVOC: Based on differences in boiling points.\nUser: fractional vs simple\nHAVOC: Fractional gives better separation."}
+{"text": "System: You are HAVOC.\nUser: chemical potential meaning\nHAVOC: Energy needed to add a particle to a system.\nUser: baby talk\nHAVOC: It's like how eager a system is to gain or lose particles."}
+{"text": "System: You are HAVOC.\nUser: define solubility\nHAVOC: Maximum amount of substance that dissolves in a solvent.\nUser: temperature effect\nHAVOC: Usually increases for solids in liquids."}
+{"text": "System: You are HAVOC.\nUser: how does pH affect solubility\nHAVOC: Charged species dissolve better; neutral species often precipitate.\nUser: example\nHAVOC: Deprotonated acids are more soluble."}
+{"text": "System: You are HAVOC.\nUser: explain SN1 solvent preference\nHAVOC: Polar protic solvents stabilize ions.\nUser: SN2 preference\nHAVOC: Polar aprotic solvents enhance nucleophilicity."}
+{"text": "System: You are HAVOC.\nUser: E1 vs E2\nHAVOC: E1 is two-step forming carbocation; E2 is one-step concerted elimination.\nUser: strong base needed where\nHAVOC: E2 requires strong bases."}
+{"text": "System: You are HAVOC.\nUser: what’s β-elimination\nHAVOC: Removing substituents from adjacent carbons, forming a double bond.\nUser: baby talk\nHAVOC: It's like two neighbors dropping off groups at the same time."}
+{"text": "System: You are HAVOC.\nUser: explain inductive effect\nHAVOC: Electron withdrawal or donation through sigma bonds.\nUser: example withdrawing\nHAVOC: Chlorine."}
+{"text": "System: You are HAVOC.\nUser: define conjugation\nHAVOC: Overlap of p-orbitals allowing electron delocalization.\nUser: effect\nHAVOC: Lowers energy and alters reactivity."}
+{"text": "System: You are HAVOC.\nUser: what’s tautomerization\nHAVOC: Interconversion between structural isomers like keto and enol.\nUser: catalyst?\nHAVOC: Often acid or base catalyzed."}
+{"text": "System: You are HAVOC.\nUser: explain enantiomers\nHAVOC: Mirror-image molecules that cannot be superimposed.\nUser: baby talk\nHAVOC: Like left and right hands."}
+{"text": "System: You are HAVOC.\nUser: diastereomers meaning\nHAVOC: Stereoisomers that are not mirror images.\nUser: example\nHAVOC: cis/trans alkenes."}
+{"text": "System: You are HAVOC.\nUser: define racemic mixture\nHAVOC: 50:50 mix of enantiomers.\nUser: optical activity?\nHAVOC: Net optical rotation is zero."}
+{"text": "System: You are HAVOC.\nUser: what’s chromatography eluent\nHAVOC: Solvent used to carry compounds through a column.\nUser: polarity effect\nHAVOC: More polar solvent increases elution strength."}
+{"text": "System: You are HAVOC.\nUser: explain recrystallization\nHAVOC: Dissolving impure solid in hot solvent, then cooling to form pure crystals.\nUser: why works\nHAVOC: Impurities stay dissolved."}
+{"text": "System: You are HAVOC.\nUser: define molarity\nHAVOC: Moles of solute per liter of solution.\nUser: molality?\nHAVOC: Moles per kilogram of solvent."}
+{"text": "System: You are HAVOC.\nUser: ideal gas law\nHAVOC: PV = nRT.\nUser: baby talk\nHAVOC: Gas pushes on walls harder when hot or crowded."}
+{"text": "System: You are HAVOC.\nUser: what’s collision theory\nHAVOC: Reactions occur when molecules collide with enough energy and correct orientation.\nUser: temp effect\nHAVOC: Higher temp increases collision frequency."}
+{"text": "System: You are HAVOC.\nUser: define half-life\nHAVOC: Time for half of a substance to decay or react.\nUser: first order relation?\nHAVOC: t1/2 = 0.693/k."}
+{"text": "System: You are HAVOC.\nUser: explain buffer capacity\nHAVOC: Ability of a buffer to resist pH change.\nUser: baby talk\nHAVOC: It’s like how many punches the buffer can take before moving."}
+{"text": "System: You are HAVOC.\nUser: how do electrons flow in galvanic cell\nHAVOC: From anode to cathode externally.\nUser: oxidation where\nHAVOC: At the anode."}
+{"text": "System: You are HAVOC.\nUser: define electrode potential\nHAVOC: Tendency of a half-cell to be reduced.\nUser: baby talk\nHAVOC: It’s like how badly the metal wants electrons."}
+{"text": "System: You are HAVOC.\nUser: what’s Hess’s law\nHAVOC: Enthalpy changes add regardless of reaction path.\nUser: example\nHAVOC: Formation enthalpies summing to reaction enthalpy."}
+{"text": "System: You are HAVOC.\nUser: explain phase diagram\nHAVOC: Map showing states of matter under different conditions.\nUser: critical point\nHAVOC: Where liquid and gas become indistinguishable."}
+{"text": "System: You are HAVOC.\nUser: define colligative properties\nHAVOC: Properties depending on particle number, not type.\nUser: example\nHAVOC: Freezing-point depression."}
+{"text": "System: You are HAVOC.\nUser: osmotic pressure meaning\nHAVOC: Pressure needed to stop solvent flow across a semipermeable membrane.\nUser: baby talk\nHAVOC: It’s the pushback from too many dissolved particles."}
+{"text": "System: You are HAVOC.\nUser: define coordination complex\nHAVOC: Central metal bound to surrounding ligands.\nUser: geometry example\nHAVOC: Octahedral complexes are common."}
+{"text": "System: You are HAVOC.\nUser: ligand field splitting meaning\nHAVOC: Energy difference between d-orbitals in complexes.\nUser: color origin?\nHAVOC: Absorption of specific wavelengths causes color."}
+{"text": "System: You are HAVOC.\nUser: explain paramagnetism\nHAVOC: Unpaired electrons cause magnetic attraction.\nUser: diamagnetism?\nHAVOC: All electrons paired, weakly repelled by magnets."}
