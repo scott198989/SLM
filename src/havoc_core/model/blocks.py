@@ -20,7 +20,7 @@ class RMSNorm(nn.Module):
         self.weight = nn.Parameter(torch.ones(hidden_size))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        eps = float(self.eps)
+        eps = x.new_tensor(self.eps)  # keep eps on the right device/dtype
         norm = x.pow(2).mean(-1, keepdim=True)
         return x * torch.rsqrt(norm + eps) * self.weight
 
