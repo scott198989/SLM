@@ -34,7 +34,6 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
     # Parse model config
     if "model" in config_dict:
         model_config_dict = config_dict["model"]
-        from dataclasses import fields
         from havoc_core.config import AttentionConfig, MLPConfig
 
         # Parse nested attention config
@@ -59,6 +58,7 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
         config_dict["data_config"] = data_config
         del config_dict["data"]
 
+    # Build TrainingConfig object
     config = TrainingConfig(**config_dict)
 
     # Resolve key paths to absolute under /workspace/SLM
@@ -80,26 +80,28 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
                 paths = [paths]
             ds["paths"] = [_abs(p) for p in paths]
 
-    # Hard guard to prevent stale 6B configs from sneaking in
-    # Force YAML dict → HavocConfig object
+    # --- HARD GUARD FOR HAVOC OPTION-E ARCHITECTURE ---
+
+    # Ensure model_config is a HavocConfig instance
     if isinstance(config.model_config, dict):
         config.model_config = HavocConfig(**config.model_config)
 
     mc = config.model_config
-
     if mc is None:
         raise ValueError("model_config missing after YAML load")
 
+    # Expected Option-E config:
+    # d_model=2560, num_layers=20, num_heads=32, num_kv_heads=4, mlp.hidden_dim=10240
     if not (
-        mc.d_model == 3072
-        and mc.num_layers == 22
+        mc.d_model == 2560
+        and mc.num_layers == 20
         and getattr(mc.attention, "num_heads", None) == 32
         and getattr(mc.attention, "num_kv_heads", None) == 4
-        and getattr(mc.mlp, "hidden_dim", None) == 12288
+        and getattr(mc.mlp, "hidden_dim", None) == 10240
     ):
         raise ValueError(
-            "Loaded model_config does not match required HAVOC 3B settings "
-            "(d_model=3072, num_layers=22, num_heads=32, num_kv_heads=4, mlp.hidden_dim=12288). "
+            "Loaded model_config does not match required HAVOC Option-E settings "
+            "(d_model=2560, num_layers=20, num_heads=32, num_kv_heads=4, mlp.hidden_dim=10240). "
             "Update your YAML/config."
         )
 
@@ -133,7 +135,6 @@ def create_dummy_tokenizer(vocab_size: int):
 def create_datasets(config: TrainingConfig):
     """
     Create training and validation datasets.
-
     """
     # Tokenizer: require trained tokenizer
     tok_path = Path(config.tokenizer_path or "")
@@ -290,6 +291,7 @@ def main():
             return None
         p = Path(path_str)
         return str(p if p.is_absolute() else (base_dir / p))
+
     config.checkpoint_dir = _abs(config.checkpoint_dir) or str(base_dir / "checkpoints")
     config.log_dir = _abs(config.log_dir) or str(base_dir / "logs")
     config.tokenizer_path = _abs(config.tokenizer_path) or str(base_dir / "artifacts/tokenizer")
