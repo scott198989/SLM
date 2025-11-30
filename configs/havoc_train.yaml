@@ -1,52 +1,53 @@
-# HAVOC PRETRAIN CONFIG (Corrected for repo)
+# HAVOC PRETRAIN CONFIG (FLAT VERSION REQUIRED BY TrainingConfig)
+
 model_config:
   vocab_size: 70000
   d_model: 3072
   num_layers: 22
   max_seq_len: 2048
 
-training:
-  # ==== DATA ====
-  data_sources:
-    - train_path: "/workspace/SLM/data/train.jsonl"
-      valid_path: "/workspace/SLM/data/valid.jsonl"
+data_sources:
+  - train_path: "/workspace/SLM/data/train.jsonl"
+    valid_path: "/workspace/SLM/data/valid.jsonl"
 
-  tokenizer_path: "/workspace/SLM/artifacts/tokenizer"
+tokenizer_path: "/workspace/SLM/artifacts/tokenizer"
 
-  # ==== TRAINING HYPERPARAMETERS ====
-  batch_size: 1
-  gradient_accumulation_steps: 8   # effectively batch-size 8
-  learning_rate: 3e-4
-  weight_decay: 0.1
-  warmup_steps: 2000
-  max_steps: 20000
-  max_grad_norm: 1.0
+# --- Training hyperparameters ---
+batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 3e-4
+weight_decay: 0.1
+warmup_steps: 2000
+max_steps: 20000
+max_grad_norm: 1.0
 
-  # ==== SCHEDULER ====
-  lr_scheduler_type: "cosine"
-  min_learning_rate: 3e-5
+# --- LR Scheduler ---
+lr_scheduler_type: "cosine"
+min_learning_rate: 3e-5
 
-  # ==== PRECISION ====
-  use_amp: true
-  amp_dtype: "bfloat16"
+# --- Mixed Precision ---
+use_amp: true
+amp_dtype: "bfloat16"
 
-  # ==== CHECKPOINTING ====
-  checkpoint_dir: "/workspace/SLM/checkpoints"
-  save_every_n_steps: 1000
-  keep_last_n_checkpoints: 3
+# --- Checkpointing ---
+checkpoint_dir: "/workspace/SLM/checkpoints"
+save_every_n_steps: 1000
+keep_last_n_checkpoints: 3
+resume_from_checkpoint: null
 
-  # ==== EVAL ====
-  eval_every_n_steps: 500
-  eval_samples: 50
-  log_eval_examples: 1
-  example_prompt_length: 64
-  example_max_new_tokens: 32
+# --- Evaluation ---
+eval_every_n_steps: 500
+eval_samples: 50
+log_eval_examples: 1
+example_prompt_length: 64
+example_max_new_tokens: 32
 
-  # ==== LOGGING ====
-  log_every_n_steps: 20
-  log_dir: "/workspace/SLM/logs"
-  log_json_metrics: true
+# --- Logging ---
+log_every_n_steps: 20
+log_dir: "/workspace/SLM/logs"
+log_json_metrics: true
+use_tensorboard: false
 
-  # ==== MISC ====
-  device: "cuda"
-  seed: 42
+# --- Device ---
+device: "cuda"
+seed: 42
