@@ -6,8 +6,12 @@ model_config:
 
   attention:
     num_heads: 32
+    head_dim: null
     num_kv_heads: 4
     dropout: 0.0
+    rotary_dim: null
+    rope_theta: 10000.0
+    bias: false
 
   mlp:
     hidden_dim: 10240
