@@ -1,26 +1,52 @@
-model:
-  dim: 2560
-  n_layers: 32
-  n_heads: 32
+# HAVOC PRETRAIN CONFIG (Corrected for repo)
+model_config:
   vocab_size: 70000
+  d_model: 3072
+  num_layers: 22
   max_seq_len: 2048
 
 training:
-  train_path: "/workspace/SLM/data/train.jsonl"
-  valid_path: "/workspace/SLM/data/valid.jsonl"
-  batch_size: 8
-  microbatch_size: 1
-  lr: 3e-4
-  warmup_steps: 400
-  total_steps: 20000
-  save_every: 1000
-  log_every: 50
-  bfloat16: true
+  # ==== DATA ====
+  data_sources:
+    - train_path: "/workspace/SLM/data/train.jsonl"
+      valid_path: "/workspace/SLM/data/valid.jsonl"
 
-optimizer:
+  tokenizer_path: "/workspace/SLM/artifacts/tokenizer"
+
+  # ==== TRAINING HYPERPARAMETERS ====
+  batch_size: 1
+  gradient_accumulation_steps: 8   # effectively batch-size 8
+  learning_rate: 3e-4
   weight_decay: 0.1
-  betas: [0.9, 0.95]
+  warmup_steps: 2000
+  max_steps: 20000
+  max_grad_norm: 1.0
 
-checkpointing:
-  out_dir: "/workspace/SLM/checkpoints"
-  keep_last: 5
+  # ==== SCHEDULER ====
+  lr_scheduler_type: "cosine"
+  min_learning_rate: 3e-5
+
+  # ==== PRECISION ====
+  use_amp: true
+  amp_dtype: "bfloat16"
+
+  # ==== CHECKPOINTING ====
+  checkpoint_dir: "/workspace/SLM/checkpoints"
+  save_every_n_steps: 1000
+  keep_last_n_checkpoints: 3
+
+  # ==== EVAL ====
+  eval_every_n_steps: 500
+  eval_samples: 50
+  log_eval_examples: 1
+  example_prompt_length: 64
+  example_max_new_tokens: 32
+
+  # ==== LOGGING ====
+  log_every_n_steps: 20
+  log_dir: "/workspace/SLM/logs"
+  log_json_metrics: true
+
+  # ==== MISC ====
+  device: "cuda"
+  seed: 42
