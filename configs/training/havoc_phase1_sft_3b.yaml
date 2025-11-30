@@ -1,9 +1,8 @@
-model_config:
+model: &havoc_model
   vocab_size: 70000
   d_model: 2560
   num_layers: 20
   max_seq_len: 1024
-
   attention:
     num_heads: 32
     head_dim: null
@@ -12,19 +11,17 @@ model_config:
     rotary_dim: null
     rope_theta: 10000.0
     bias: false
-
   mlp:
     hidden_dim: 10240
     activation: swiglu
     dropout: 0.0
-
   dropout: 0.0
   layer_norm_eps: 1e-5
   initializer_range: 0.02
   pad_token_id: 0
   bos_token_id: 1
   eos_token_id: 2
-
+model_config: *havoc_model
 
 data_config:
   domain_ratio: 0.6
