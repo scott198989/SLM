@@ -81,7 +81,12 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
             ds["paths"] = [_abs(p) for p in paths]
 
     # Hard guard to prevent stale 6B configs from sneaking in
-    mc = config.model_config
+ # Force YAML dict → HavocConfig object
+if isinstance(config.model_config, dict):
+    config.model_config = HavocConfig(**config.model_config)
+
+mc = config.model_config
+
     if mc is None:
         raise ValueError("model_config missing after YAML load")
     if not (
