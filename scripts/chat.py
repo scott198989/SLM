@@ -1,6 +1,11 @@
 """
-HAVOC interactive chat script.
-Model.generate() DOES NOT accept tokenizer → handled here instead.
+HAVOC interactive chat script (improved).
+Adds:
+- System prompt
+- Conversation history
+- Honest fallback ("I don't know based on my training data.")
+- Role formatting
+- Cleaner generation
 """
 
 from __future__ import annotations
@@ -8,13 +13,44 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import torch
 
 from havoc_core.config import HavocConfig, AttentionConfig, MLPConfig
 from havoc_core.model.transformer import HavocModel
 from havoc_core.tokenizer.tokenizer import load_tokenizer
+
+
+# -----------------------------------------------------
+# System Prompt
+# -----------------------------------------------------
+SYSTEM_PROMPT = (
+    "System:\n"
+    "You are HAVOC, a domain-focused chemistry and science assistant.\n"
+    "You answer questions directly, concisely, and honestly.\n"
+    "You MUST NOT fabricate mechanisms, spectra, reactions, or structures if unsure.\n"
+    "If you do not know, respond exactly with:\n"
+    "\"I don't know based on my training data.\"\n"
+    "Do NOT continue synthetic procedures unless explicitly asked.\n"
+    "When the user asks a question, respond to the question.\n"
+    "Use plain English unless chemical notation is necessary.\n"
+    "Stay in assistant mode at all times.\n"
+)
+
+
+# -----------------------------------------------------
+# Build the full prompt with history
+# -----------------------------------------------------
+def build_prompt(history: List[str]) -> str:
+    """
+    history = [
+        "User: ...",
+        "HAVOC: ...",
+        "User: ...",
+    ]
+    """
+    return SYSTEM_PROMPT + "\n" + "\n".join(history) + "\nHAVOC: "
 
 
 # -----------------------------------------------------
@@ -76,34 +112,73 @@ def load_model(checkpoint_dir: str, device="cuda"):
 
 
 # -----------------------------------------------------
+# Generate Reply
+# -----------------------------------------------------
+def generate_reply(model, tokenizer, device, prompt: str, max_new_tokens: int, temperature: float):
+    ids = tokenizer.encode(prompt, add_bos=True, add_eos=False)
+    ids = torch.tensor([ids], dtype=torch.long, device=device)
+
+    with torch.no_grad():
+        out = model.generate(
+            prompt_ids=ids,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+        )
+
+    new_tokens = out[0, ids.shape[1]:].tolist()
+    text = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+
+    # Fallback: empty / nonsense
+    if not text or len(text) == 0:
+        return "I don't know based on my training data."
+
+    # Hard honesty rule
+    gibberish_markers = ["[CH", "[C:", "[N:", "=:","µ","Â","Â°","old mixture"]
+    if any(x in text[:30] for x in gibberish_markers):
+        return "I don't know based on my training data."
+
+    return text
+
+
+# -----------------------------------------------------
 # Chat Loop
 # -----------------------------------------------------
 def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
     print("Type 'quit' to exit.\n")
 
+    history: List[str] = []
+
     while True:
-        msg = input("You: ").strip()
+        try:
+            msg = input("You: ").strip()
+        except EOFError:
+            print("\nEOF reached. Exiting.")
+            break
+
         if msg.lower() in {"quit", "exit", "q"}:
             print("Goodnight.")
             break
 
-        ids = tokenizer.encode(msg, add_bos=True, add_eos=False)
-        ids = torch.tensor([ids], dtype=torch.long, device=device)
+        # Add user message to history
+        history.append(f"User: {msg}")
 
-        with torch.no_grad():
-            out = model.generate(
-                prompt_ids=ids,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-            )
+        # Build full prompt
+        full_prompt = build_prompt(history)
 
-        new_tokens = out[0, ids.shape[1]:].tolist()
-        text = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+        # Generate reply
+        reply = generate_reply(
+            model=model,
+            tokenizer=tokenizer,
+            device=device,
+            prompt=full_prompt,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+        )
 
-        if text == "":
-            text = "(mumbles)"
+        # Append reply
+        history.append(f"HAVOC: {reply}")
 
-        print(f"HAVOC: {text}\n")
+        print(f"HAVOC: {reply}\n")
 
 
 # -----------------------------------------------------
@@ -114,13 +189,12 @@ def main():
     parser.add_argument("--checkpoint-dir", type=str, default="/workspace/SLM/checkpoints")
     parser.add_argument("--tokenizer-path", type=str, default="/workspace/SLM/artifacts/tokenizer")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
-    parser.add_argument("--max-new-tokens", type=int, default=128)
-    parser.add_argument("--temperature", type=float, default=0.9)
+    parser.add_argument("--max-new-tokens", type=int, default=256)
+    parser.add_argument("--temperature", type=float, default=0.8)
     args = parser.parse_args()
 
     device = torch.device(args.device)
 
-    # FIXED HERE — underscore, no dash
     chk = Path(args.checkpoint_dir)
 
     if chk.exists():
