@@ -8,7 +8,6 @@ model_config:
     num_heads: 32
     num_kv_heads: 4
     dropout: 0.0
-    rope_theta: 10000.0
 
   mlp:
     hidden_dim: 10240
