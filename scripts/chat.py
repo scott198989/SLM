@@ -39,7 +39,6 @@ def find_latest_checkpoint(base_dir: str) -> Optional[Path]:
 def load_model(checkpoint_dir: str, device="cuda"):
     print(f"Loading model from: {checkpoint_dir}")
 
-    # Load config
     config_path = os.path.join(checkpoint_dir, "config.json")
     with open(config_path, "r") as f:
         raw = json.load(f)
@@ -66,9 +65,9 @@ def load_model(checkpoint_dir: str, device="cuda"):
 
     model = HavocModel(model_cfg).to(device)
 
-    # Load weights
     weights_path = os.path.join(checkpoint_dir, "model.pt")
     print(f"Loading PyTorch weights: {weights_path}")
+
     state = torch.load(weights_path, map_location=device)
     model.load_state_dict(state, strict=True)
 
@@ -77,7 +76,7 @@ def load_model(checkpoint_dir: str, device="cuda"):
 
 
 # -----------------------------------------------------
-# Chat loop
+# Chat Loop
 # -----------------------------------------------------
 def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
     print("Type 'quit' to exit.\n")
@@ -121,8 +120,8 @@ def main():
 
     device = torch.device(args.device)
 
-    # --- FIXED: allow direct checkpoint folder or directory containing multiple checkpoints
-    chk = Path(args.checkpoint-dir)
+    # FIXED HERE — underscore, no dash
+    chk = Path(args.checkpoint_dir)
 
     if chk.exists():
         if (chk / "model.pt").exists() and (chk / "config.json").exists():
