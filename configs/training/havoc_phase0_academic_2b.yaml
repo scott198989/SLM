@@ -6,10 +6,10 @@ model: &havoc_model
 
   attention:
     num_heads: 32
-    head_dim: 80        # FIXED: 2560 / 32
+    head_dim: 80
     num_kv_heads: 4
     dropout: 0.0
-    rotary_dim: 80      # FIXED: match head_dim
+    rotary_dim: 80
     rope_theta: 10000.0
     bias: false
 
@@ -29,36 +29,33 @@ model: &havoc_model
 model_config: *havoc_model
 
 data_config:
-  domain_ratio: 0.6
-  general_ratio: 0.3
-  dialog_ratio: 0.1
+  domain_ratio: 1.0
+  general_ratio: 0.0
+  dialog_ratio: 0.0
   max_sequence_length: 1024
-  samples_per_epoch: 1024
+  samples_per_epoch: 200  # ~198 academic samples
   pack_sequences: true
   add_bos: true
   add_eos: true
 
 data_sources:
-  - type: jsonl
+  - name: academic_full
+    type: jsonl
     paths:
-      - sft_data/havoc_sft_phase1_full.jsonl
+      - artifacts/data/havoc_academic_v1.jsonl
     weight: 1.0
     text_field: text
 
-# ----------------------------
-# TrainingConfig FIELDS
-# ----------------------------
-
 tokenizer_path: artifacts/tokenizer
 
-checkpoint_dir: checkpoints/havoc_sft_phase1
+checkpoint_dir: checkpoints/havoc_academic_phase0
 resume_from_checkpoint: ""
 
 batch_size: 1
 gradient_accumulation_steps: 4
 
 max_epochs: null
-max_steps: 1500
+max_steps: 2000  # ~40 epochs at 50 optimizer steps/epoch
 
 learning_rate: 1e-5
 min_learning_rate: 1e-6
@@ -71,11 +68,11 @@ lr_scheduler_type: cosine
 use_amp: true
 amp_dtype: bfloat16
 
-save_every_n_steps: 250
-keep_last_n_checkpoints: 3
+save_every_n_steps: 200
+keep_last_n_checkpoints: 5
 
 eval_every_n_steps: 200
-eval_samples: 10
+eval_samples: 50
 log_eval_examples: 1
 example_prompt_length: 64
 example_max_new_tokens: 32
