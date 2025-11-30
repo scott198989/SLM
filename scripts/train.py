@@ -86,6 +86,10 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
     if isinstance(config.model_config, dict):
         config.model_config = HavocConfig(**config.model_config)
 
+    # Ensure data_config is a DataMixtureConfig instance (YAML may supply a raw dict)
+    if isinstance(config.data_config, dict):
+        config.data_config = DataMixtureConfig(**config.data_config)
+
     mc = config.model_config
     if mc is None:
         raise ValueError("model_config missing after YAML load")
