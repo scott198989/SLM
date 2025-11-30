@@ -1,11 +1,12 @@
 """
-HAVOC interactive chat script (improved).
+HAVOC interactive chat script (improved v2).
 Adds:
 - System prompt
 - Conversation history
 - Honest fallback ("I don't know based on my training data.")
 - Role formatting
-- Cleaner generation
+- Greeting handling
+- Basic gibberish / SMILES filter for non-chem questions
 """
 
 from __future__ import annotations
@@ -112,9 +113,59 @@ def load_model(checkpoint_dir: str, device="cuda"):
 
 
 # -----------------------------------------------------
+# Small helpers for output sanity
+# -----------------------------------------------------
+def _looks_like_smiles_gibberish(text: str) -> bool:
+    # Very crude: catches atom-mapped / bracket-heavy junk
+    smiles_markers = ["[CH", "[C:", "[N:", "[O:", "m/z", "δ ", "SMILES"]
+    if any(tok in text for tok in smiles_markers):
+        return True
+
+    # Bracket density as a rough signal
+    bracket_count = text.count("[") + text.count("]")
+    ratio = bracket_count / max(1, len(text))
+    return ratio > 0.12
+
+
+def _user_is_greeting(user_msg: str) -> bool:
+    msg = user_msg.lower().strip()
+    greeting_triggers = ("hello", "hi", "hey", "yo", "sup", "good morning", "good afternoon", "good evening")
+    return any(msg.startswith(g) for g in greeting_triggers) or msg in {"hello", "hi", "hey", "yo", "sup"}
+
+
+def _user_requested_chem(user_msg: str) -> bool:
+    """Does the user clearly want chemistry / SMILES / spectra?"""
+    msg = user_msg.lower()
+    chem_tokens = [
+        "smiles",
+        "δ",
+        "nmr",
+        "logp",
+        "reaction",
+        "mechanism",
+        "naBH4".lower(),
+        "ester",
+        "amide",
+        "alkoxide",
+        "compound",
+        "synthesis",
+        "[",  # raw SMILES / atom-mapped
+    ]
+    return any(tok in msg for tok in chem_tokens)
+
+
+# -----------------------------------------------------
 # Generate Reply
 # -----------------------------------------------------
-def generate_reply(model, tokenizer, device, prompt: str, max_new_tokens: int, temperature: float):
+def generate_reply(
+    model,
+    tokenizer,
+    device,
+    prompt: str,
+    max_new_tokens: int,
+    temperature: float,
+    last_user_msg: str,
+) -> str:
     ids = tokenizer.encode(prompt, add_bos=True, add_eos=False)
     ids = torch.tensor([ids], dtype=torch.long, device=device)
 
@@ -128,13 +179,21 @@ def generate_reply(model, tokenizer, device, prompt: str, max_new_tokens: int, t
     new_tokens = out[0, ids.shape[1]:].tolist()
     text = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
-    # Fallback: empty / nonsense
-    if not text or len(text) == 0:
+    # Empty / nothing
+    if not text:
         return "I don't know based on my training data."
 
-    # Hard honesty rule
-    gibberish_markers = ["[CH", "[C:", "[N:", "=:","µ","Â","Â°","old mixture"]
-    if any(x in text[:30] for x in gibberish_markers):
+    # If user just greeted and we got chem-gibberish → override with a normal greeting
+    if _user_is_greeting(last_user_msg) and _looks_like_smiles_gibberish(text):
+        return "Hey, I'm HAVOC. I'm better at chemistry than small talk, but I'm here. What do you want to work on?"
+
+    # If user did NOT ask for chemistry, but output is SMILES/NMR gobble:
+    if not _user_requested_chem(last_user_msg) and _looks_like_smiles_gibberish(text):
+        return "I don't know based on my training data."
+
+    # Additional simple bad-markers for early cutoff
+    gibberish_markers = ["Â", "Â°", "old mixture"]
+    if any(x in text for x in gibberish_markers) and not _user_requested_chem(last_user_msg):
         return "I don't know based on my training data."
 
     return text
@@ -162,6 +221,10 @@ def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
         # Add user message to history
         history.append(f"User: {msg}")
 
+        # Trim history so we don't blow context
+        if len(history) > 20:
+            history = history[-20:]
+
         # Build full prompt
         full_prompt = build_prompt(history)
 
@@ -173,9 +236,10 @@ def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
             prompt=full_prompt,
             max_new_tokens=max_new_tokens,
             temperature=temperature,
+            last_user_msg=msg,
         )
 
-        # Append reply
+        # Append reply to history
         history.append(f"HAVOC: {reply}")
 
         print(f"HAVOC: {reply}\n")
