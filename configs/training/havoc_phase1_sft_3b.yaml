@@ -3,24 +3,29 @@ model: &havoc_model
   d_model: 2560
   num_layers: 20
   max_seq_len: 1024
+
   attention:
     num_heads: 32
-    head_dim: null
+    head_dim: 80        # FIXED: 2560 / 32
     num_kv_heads: 4
     dropout: 0.0
-    rotary_dim: null
+    rotary_dim: 80      # FIXED: match head_dim
     rope_theta: 10000.0
     bias: false
+
   mlp:
     hidden_dim: 10240
     activation: swiglu
     dropout: 0.0
+
   dropout: 0.0
   layer_norm_eps: 1e-5
   initializer_range: 0.02
+
   pad_token_id: 0
   bos_token_id: 1
   eos_token_id: 2
+
 model_config: *havoc_model
 
 data_config:
@@ -33,7 +38,6 @@ data_config:
   add_bos: true
   add_eos: true
 
-
 data_sources:
   - type: jsonl
     paths:
@@ -41,9 +45,8 @@ data_sources:
     weight: 1.0
     text_field: text
 
-
 # ----------------------------
-# TrainingConfig FIELDS (top level)
+# TrainingConfig FIELDS
 # ----------------------------
 
 tokenizer_path: artifacts/tokenizer
