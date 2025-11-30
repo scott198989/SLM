@@ -87,7 +87,7 @@ if isinstance(config.model_config, dict):
 
 mc = config.model_config
 
-    if mc is None:
+if mc is None:
         raise ValueError("model_config missing after YAML load")
     if not (
         mc.d_model == 3072
