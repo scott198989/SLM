@@ -1,4 +1,4 @@
-model:
+model_config:
   vocab_size: 70000
   d_model: 2560
   num_layers: 20
@@ -23,48 +23,59 @@ model:
   eos_token_id: 2
 
 
-tokenizer:
-  path: artifacts/tokenizer
-
-
-data:
-  data_sources:
-    - paths:
-        - sft_data/havoc_sft_phase1_full.jsonl
-      weight: 1.0
-
+data_config:
+  domain_ratio: 0.6
+  general_ratio: 0.3
+  dialog_ratio: 0.1
   max_sequence_length: 1024
+  samples_per_epoch: 1024
   pack_sequences: true
   add_bos: true
   add_eos: true
 
 
+data_sources:
+  - paths:
+      - sft_data/havoc_sft_phase1_full.jsonl
+    weight: 1.0
+
+
 training:
+  tokenizer_path: artifacts/tokenizer
+
   checkpoint_dir: checkpoints/havoc_sft_phase1
   resume_from_checkpoint: checkpoints/checkpoint_step_20000
 
   batch_size: 1
   gradient_accumulation_steps: 4
 
+  max_epochs: null
+  max_steps: 1500
+
   learning_rate: 1e-5
   min_learning_rate: 1e-6
   weight_decay: 0.1
-
   warmup_steps: 50
-  max_steps: 1500
   max_grad_norm: 1.0
+
+  lr_scheduler_type: cosine
 
   use_amp: true
   amp_dtype: bfloat16
 
-  lr_scheduler_type: cosine
+  save_every_n_steps: 250
+  keep_last_n_checkpoints: 3
 
-
-logging:
-  log_dir: logs
-  log_json_metrics: true
-  log_every_n_steps: 20
   eval_every_n_steps: 200
   eval_samples: 10
+  log_eval_examples: 1
   example_prompt_length: 64
   example_max_new_tokens: 32
+
+  log_every_n_steps: 20
+  log_dir: logs
+  log_json_metrics: true
+  use_tensorboard: false
+
+  device: cuda
+  seed: 42
