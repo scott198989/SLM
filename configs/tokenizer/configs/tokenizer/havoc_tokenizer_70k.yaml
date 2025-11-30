@@ -1,0 +1,21 @@
+# TokenizerTrainingConfig
+
+vocab_size: 70000
+model_type: bpe
+character_coverage: 1.0
+max_sentence_length: 4192
+
+normalize_text: true
+
+special_tokens:
+  - "<cls>"
+  - "<sep>"
+  - "<mask>"
+  - "<math>"
+  - "<chem>"
+  - "<eng>"
+
+input_files:
+  - sft_data/tokenizer_corpus.txt
+
+output_dir: artifacts/tokenizer
