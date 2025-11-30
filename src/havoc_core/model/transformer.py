@@ -25,14 +25,13 @@ class HavocModel(nn.Module):
         # Init
         self._init_weights()
 
-        # Parameter count validation (must stay within 2.8B-3.2B)
+        # ------------------------------------------------------------------
+        # REMOVE PARAMETER COUNT GUARD — HAVOC ALLOWS CUSTOM SIZES NOW
+        # ------------------------------------------------------------------
         total_params = sum(p.numel() for p in self.parameters())
         total_params_b = total_params / 1e9
-        print(f"Model parameters: {total_params_b:.2f}B")
-        if not (2.8 <= total_params_b <= 3.2):
-            raise ValueError(
-                f"Model parameter count {total_params_b:.2f}B outside target range 2.8B-3.2B"
-            )
+        print(f"Model parameters: {total_params_b:.2f}B (no strict param guard)")
+        # ------------------------------------------------------------------
 
     def forward(
         self,
@@ -76,7 +75,7 @@ class HavocModel(nn.Module):
         prompt_ids: torch.Tensor,
         max_new_tokens: int = 16,
         temperature: float = 1.0,
-        tokenizer=None,   # added tokenizer for penalty logic
+        tokenizer=None,
     ):
         self.eval()
         generated = prompt_ids
@@ -84,11 +83,7 @@ class HavocModel(nn.Module):
 
         with torch.no_grad():
             for _ in range(max_new_tokens):
-
-                if past_key_values is None:
-                    input_ids = generated
-                else:
-                    input_ids = generated[:, -1:]
+                input_ids = generated if past_key_values is None else generated[:, -1:]
 
                 logits, past_key_values = self(
                     input_ids,
@@ -99,25 +94,19 @@ class HavocModel(nn.Module):
                 next_logits = logits[:, -1, :] / temperature
                 probs = torch.softmax(next_logits, dim=-1)
 
-                # ------------------------------
-                # FORCE STOP SELECTING "."
-                # ------------------------------
+                # Force stop selecting "."
                 if tokenizer is not None:
                     dot_id = tokenizer.encode(".")[0]
                     probs[:, dot_id] = 0.0
                     probs = probs / probs.sum(dim=-1, keepdim=True)
 
-                # multinomial sample
                 next_token = torch.multinomial(probs, num_samples=1)
-
                 generated = torch.cat([generated, next_token], dim=1)
 
                 if (next_token == self.config.eos_token_id).all():
                     break
 
         return generated
-
-    # END OF generate()
 
     # ---------------------------------------------------------
     # Mask + weight init functions unchanged
@@ -144,6 +133,8 @@ class HavocModel(nn.Module):
 
     def _init_weights(self):
         std = self.config.initializer_range
+        nn.init.normal_(self.embed_tokens.weight, mean=0.0, std=std)
+
 
         nn.init.normal_(self.embed_tokens.weight, mean=0.0, std=std)
 
