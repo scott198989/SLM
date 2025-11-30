@@ -27,7 +27,7 @@ from havoc_training.trainer import Trainer
 
 def load_config_from_yaml(config_path: str) -> TrainingConfig:
     """Load training configuration from YAML file."""
-    base_dir = Path("/workspace/SLM")
+    base_dir = Path(__file__).resolve().parent.parent
     with open(config_path, "r") as f:
         config_dict = yaml.safe_load(f)
 
@@ -89,6 +89,20 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
     # Ensure data_config is a DataMixtureConfig instance (YAML may supply a raw dict)
     if isinstance(config.data_config, dict):
         config.data_config = DataMixtureConfig(**config.data_config)
+
+    # Coerce numeric strings to floats for learning rates (PyYAML loads 1e-5 as str under YAML 1.2)
+    def _as_float(val):
+        if isinstance(val, str):
+            try:
+                return float(val)
+            except ValueError:
+                return val
+        return val
+
+    config.learning_rate = _as_float(config.learning_rate)
+    config.min_learning_rate = _as_float(config.min_learning_rate)
+    config.weight_decay = _as_float(config.weight_decay)
+    config.max_grad_norm = _as_float(config.max_grad_norm)
 
     mc = config.model_config
     if mc is None:
@@ -152,7 +166,7 @@ def create_datasets(config: TrainingConfig):
     if config.data_sources:
         sources = load_sources(config.data_sources)
     else:
-        data_dir = Path("/workspace/SLM/data")
+        data_dir = Path(__file__).resolve().parent.parent / "data"
         if data_dir.exists():
             # Collect .txt and .jsonl files under data/
             txt_files = list(data_dir.rglob("*.txt"))
@@ -260,8 +274,8 @@ def main():
     parser.add_argument(
         "--tokenizer-path",
         type=str,
-        default="/workspace/SLM/artifacts/tokenizer",
-        help="Path to tokenizer directory (absolute).",
+        default=None,
+        help="Path to tokenizer directory (absolute). Overrides config if set.",
     )
 
     args = parser.parse_args()
@@ -289,7 +303,7 @@ def main():
             config.data_config.max_sequence_length = args.max_seq_len
 
     # Re-resolve key paths after overrides
-    base_dir = Path("/workspace/SLM")
+    base_dir = Path(__file__).resolve().parent.parent
     def _abs(path_str: str | None) -> str | None:
         if path_str is None:
             return None

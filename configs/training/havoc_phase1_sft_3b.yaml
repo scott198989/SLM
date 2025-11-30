@@ -47,7 +47,7 @@ data_sources:
 tokenizer_path: artifacts/tokenizer
 
 checkpoint_dir: checkpoints/havoc_sft_phase1
-resume_from_checkpoint: checkpoints/checkpoint_step_20000
+resume_from_checkpoint: checkpoints/checkpoint_step_1000
 
 batch_size: 1
 gradient_accumulation_steps: 4
