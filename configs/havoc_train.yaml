@@ -1,16 +1,36 @@
 # -------------------------------
-# HAVOC TRAINING CONFIG (VALID)
+# HAVOC 3B TRAINING CONFIG
 # -------------------------------
 
-model_config:
+model:
   vocab_size: 70000
   d_model: 3072
   num_layers: 22
   max_seq_len: 2048
 
+  attention:
+    num_heads: 32
+    num_kv_heads: 4
+
+  mlp:
+    hidden_dim: 12288
+
+data:
+  # Data mixture behavior (this is required!)
+  domain_ratio: 0.6
+  general_ratio: 0.3
+  dialog_ratio: 0.1
+  max_sequence_length: 2048
+  samples_per_epoch: 1024
+  pack_sequences: true
+  add_bos: true
+  add_eos: true
+
 data_sources:
-  - train_path: "/workspace/SLM/data/train.jsonl"
-    valid_path: "/workspace/SLM/data/valid.jsonl"
+  - paths:
+      - "/workspace/SLM/data/train.jsonl"
+      - "/workspace/SLM/data/valid.jsonl"
+    weight: 1.0
 
 tokenizer_path: "/workspace/SLM/artifacts/tokenizer"
 

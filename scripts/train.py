@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HAVOC-7B Training Script
+HAVOC-3B Training Script
 
 Usage:
     python scripts/train.py --config configs/training/default_training.yaml
