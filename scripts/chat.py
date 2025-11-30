@@ -66,7 +66,7 @@ def load_model(checkpoint_dir: str, device="cuda"):
 
     model = HavocModel(model_cfg).to(device)
 
-    # Load weights from model.pt
+    # Load weights
     weights_path = os.path.join(checkpoint_dir, "model.pt")
     print(f"Loading PyTorch weights: {weights_path}")
     state = torch.load(weights_path, map_location=device)
@@ -77,37 +77,8 @@ def load_model(checkpoint_dir: str, device="cuda"):
 
 
 # -----------------------------------------------------
-# Generate reply — fixed **without tokenizer argument**
-# -----------------------------------------------------
-def generate_reply(model, tokenizer, conversation, system_prompt, max_new_tokens, temperature, device):
-    full_prompt = system_prompt + "\n" + "\n".join(conversation) + "\nHAVOC:"
-
-    input_ids = tokenizer.encode(full_prompt, add_bos=True, add_eos=False)
-    input_ids = torch.tensor([input_ids], dtype=torch.long, device=device)
-
-    with torch.no_grad():
-        # model.generate() DOES NOT support tokenizer → so we call it clean
-        output = model.generate(
-            prompt_ids=input_ids,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-        )
-
-    # Extract new tokens
-    new_tokens = output[0, input_ids.shape[1]:].tolist()
-    raw = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
-
-    # Last line of defense against "." spam
-    if raw.strip() == ".":
-        raw = "(mumbles and shrugs)"
-
-    if raw == "":
-        raw = "(mumbles unintelligibly)"
-
-    return raw
-
 # Chat loop
-
+# -----------------------------------------------------
 def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
     print("Type 'quit' to exit.\n")
 
@@ -117,10 +88,7 @@ def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
             print("Goodnight.")
             break
 
-        # Pure continuation prompt
-        prompt = msg  # no "You:", no "HAVOC:", nothing
-
-        ids = tokenizer.encode(prompt, add_bos=True, add_eos=False)
+        ids = tokenizer.encode(msg, add_bos=True, add_eos=False)
         ids = torch.tensor([ids], dtype=torch.long, device=device)
 
         with torch.no_grad():
@@ -139,14 +107,13 @@ def chat_loop(model, tokenizer, device, max_new_tokens, temperature):
         print(f"HAVOC: {text}\n")
 
 
-
 # -----------------------------------------------------
 # Main
 # -----------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="Chat with HAVOC checkpoint")
-    parser.add_argument("--checkpoint-dir", type=str, default="/workspace/checkpoints")
-    parser.add_argument("--tokenizer-path", type=str, default="artifacts/tokenizer")
+    parser.add_argument("--checkpoint-dir", type=str, default="/workspace/SLM/checkpoints")
+    parser.add_argument("--tokenizer-path", type=str, default="/workspace/SLM/artifacts/tokenizer")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--max-new-tokens", type=int, default=128)
     parser.add_argument("--temperature", type=float, default=0.9)
@@ -154,7 +121,20 @@ def main():
 
     device = torch.device(args.device)
 
-    latest = find_latest_checkpoint(args.checkpoint_dir)
+    # --- FIXED: allow direct checkpoint folder or directory containing multiple checkpoints
+    chk = Path(args.checkpoint-dir)
+
+    if chk.exists():
+        if (chk / "model.pt").exists() and (chk / "config.json").exists():
+            latest = chk
+        else:
+            latest = find_latest_checkpoint(str(chk))
+    else:
+        latest = None
+
+    if latest is None:
+        raise FileNotFoundError(f"No valid checkpoint found under: {args.checkpoint_dir}")
+
     print(f"Using checkpoint: {latest}")
 
     tokenizer = load_tokenizer(args.tokenizer_path)
