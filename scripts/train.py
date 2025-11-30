@@ -105,6 +105,23 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
     config.max_grad_norm = _as_float(config.max_grad_norm)
 
     mc = config.model_config
+
+    # Coerce model config numeric fields that may be strings from YAML
+    if mc:
+        mc.layer_norm_eps = _as_float(mc.layer_norm_eps)
+        mc.dropout = _as_float(mc.dropout)
+        mc.initializer_range = _as_float(mc.initializer_range)
+
+        # Coerce attention config if present
+        if hasattr(mc, 'attention') and mc.attention:
+            attn = mc.attention
+            attn.dropout = _as_float(getattr(attn, 'dropout', 0.0))
+            attn.rope_theta = _as_float(getattr(attn, 'rope_theta', 10000.0))
+
+        # Coerce MLP config if present
+        if hasattr(mc, 'mlp') and mc.mlp:
+            mlp = mc.mlp
+            mlp.dropout = _as_float(getattr(mlp, 'dropout', 0.0))
     if mc is None:
         raise ValueError("model_config missing after YAML load")
 

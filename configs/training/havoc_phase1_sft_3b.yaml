@@ -35,9 +35,11 @@ data_config:
 
 
 data_sources:
-  - paths:
+  - type: jsonl
+    paths:
       - sft_data/havoc_sft_phase1_full.jsonl
     weight: 1.0
+    text_field: text
 
 
 # ----------------------------
