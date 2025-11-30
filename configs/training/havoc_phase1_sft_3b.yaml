@@ -1,0 +1,67 @@
+model:
+  vocab_size: 70000
+  d_model: 2560
+  num_layers: 20
+  max_seq_len: 1024
+
+  attention:
+    num_heads: 32
+    num_kv_heads: 4
+    dropout: 0.0
+    rope_theta: 10000.0
+
+  mlp:
+    hidden_dim: 10240
+    activation: swiglu
+    dropout: 0.0
+
+  dropout: 0.0
+  layer_norm_eps: 1e-5
+  initializer_range: 0.02
+  pad_token_id: 0
+  bos_token_id: 1
+  eos_token_id: 2
+
+
+tokenizer:
+  path: artifacts/tokenizer
+
+
+data:
+  train_path: sft_data/havoc_sft_phase1_full.jsonl
+  valid_path: data/valid.jsonl
+  max_seq_len: 1024
+  add_bos: true
+  add_eos: true
+  pack_sequences: true
+
+
+training:
+  checkpoint_dir: checkpoints/havoc_sft_phase1
+  resume_from_checkpoint: checkpoints/checkpoint_step_20000
+
+  batch_size: 1
+  gradient_accumulation_steps: 4
+
+  learning_rate: 1e-5
+  min_learning_rate: 1e-6
+  weight_decay: 0.1
+
+  warmup_steps: 50
+  max_steps: 1500
+  max_grad_norm: 1.0
+
+  use_amp: true
+  amp_dtype: bfloat16
+
+  lr_scheduler_type: cosine
+
+
+logging:
+  log_dir: logs
+  log_json_metrics: true
+  log_every_n_steps: 20
+  eval_every_n_steps: 200
+  eval_samples: 10
+  example_prompt_length: 64
+  example_max_new_tokens: 32
