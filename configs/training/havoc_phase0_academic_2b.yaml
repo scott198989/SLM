@@ -1,4 +1,4 @@
-model: &havoc_model
+model:
   vocab_size: 70000
   d_model: 2560
   num_layers: 20
@@ -6,81 +6,61 @@ model: &havoc_model
 
   attention:
     num_heads: 32
-    head_dim: 80
     num_kv_heads: 4
     dropout: 0.0
-    rotary_dim: 80
-    rope_theta: 10000.0
-    bias: false
 
   mlp:
     hidden_dim: 10240
-    activation: swiglu
-    dropout: 0.0
+    activation: "gelu"
 
-  dropout: 0.0
-  layer_norm_eps: 1e-5
-  initializer_range: 0.02
-
-  pad_token_id: 0
-  bos_token_id: 1
-  eos_token_id: 2
-
-model_config: *havoc_model
-
-data_config:
-  domain_ratio: 1.0
-  general_ratio: 0.0
-  dialog_ratio: 0.0
+data:
   max_sequence_length: 1024
-  samples_per_epoch: 200  # ~198 academic samples
   pack_sequences: true
   add_bos: true
   add_eos: true
 
+tokenizer_path: "/workspace/SLM/artifacts/tokenizer"
+
 data_sources:
-  - name: academic_full
+  - name: academic_and_instruct_all
     type: jsonl
     paths:
-      - artifacts/data/havoc_academic_v1.jsonl
+      - /workspace/SLM/data/academic_clean
+      - /workspace/SLM/data
     weight: 1.0
-    text_field: text
-
-tokenizer_path: artifacts/tokenizer
-
-checkpoint_dir: checkpoints/havoc_academic_phase0
-resume_from_checkpoint: ""
 
 batch_size: 1
 gradient_accumulation_steps: 4
 
 max_epochs: null
-max_steps: 2000  # ~40 epochs at 50 optimizer steps/epoch
+max_steps: 20000
 
 learning_rate: 1e-5
-min_learning_rate: 1e-6
 weight_decay: 0.1
-warmup_steps: 50
+warmup_steps: 100
 max_grad_norm: 1.0
 
-lr_scheduler_type: cosine
+lr_scheduler_type: "cosine"
+min_learning_rate: 1e-6
 
 use_amp: true
-amp_dtype: bfloat16
+amp_dtype: "bfloat16"
 
-save_every_n_steps: 200
-keep_last_n_checkpoints: 5
+checkpoint_dir: "/workspace/SLM/checkpoints/havoc_academic_phase0"
+save_every_n_steps: 500
+keep_last_n_checkpoints: 2
+resume_from_checkpoint: null
 
-eval_every_n_steps: 200
-eval_samples: 50
+eval_every_n_steps: 500
+eval_samples: 100
 log_eval_examples: 1
 example_prompt_length: 64
-example_max_new_tokens: 32
+example_max_new_tokens: 64
 
-log_every_n_steps: 20
+log_every_n_steps: 10
+log_dir: "/workspace/SLM/logs"
 log_json_metrics: true
 use_tensorboard: false
-log_dir: logs
 
-device: cuda
+device: "cuda"
 seed: 42

@@ -14,7 +14,7 @@ model:
     activation: "gelu"
 
 data:
-  samples_per_epoch: null
+  samples_per_epoch: 50000
   max_sequence_length: 1024
   pack_sequences: true
   add_bos: true
@@ -23,7 +23,7 @@ data:
 tokenizer_path: "/workspace/SLM/artifacts/tokenizer"
 
 data_sources:
-  - name: instruct_sft_full
+  - name: instruct_sft_clean
     type: jsonl
     paths:
       - /workspace/SLM/data/instruct_shuffled_text.jsonl
@@ -33,7 +33,7 @@ batch_size: 1
 gradient_accumulation_steps: 4
 
 max_epochs: null
-max_steps: 20000   # ~1 strong pass over the instruct corpus
+max_steps: 50000
 
 learning_rate: 1e-5
 weight_decay: 0.1
@@ -46,11 +46,10 @@ min_learning_rate: 1e-6
 use_amp: true
 amp_dtype: "bfloat16"
 
-checkpoint_dir: "/workspace/SLM/checkpoints/havoc_sft_phase1_2b"
+checkpoint_dir: "/workspace/SLM/checkpoints/havoc_phase1_sft"
 save_every_n_steps: 500
 keep_last_n_checkpoints: 2
 
-# IMPORTANT: start from Phase-0
 resume_from_checkpoint: "/workspace/SLM/checkpoints/havoc_academic_phase0/checkpoint_step_20000"
 
 eval_every_n_steps: 500
@@ -60,7 +59,7 @@ example_prompt_length: 64
 example_max_new_tokens: 64
 
 log_every_n_steps: 10
-log_dir: "/workspace/SLM/logs_sft"
+log_dir: "/workspace/SLM/logs_phase1"
 log_json_metrics: true
 use_tensorboard: false
 
