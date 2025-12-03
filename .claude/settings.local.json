@@ -8,7 +8,9 @@
       "Bash(python3:*)",
       "Bash(python:*)",
       "Bash(timeout 30 python:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(dir \"C:\\Users\\ScottT\\SLM\\artifacts\\tokenizer\")",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
