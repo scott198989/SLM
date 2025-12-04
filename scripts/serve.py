@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-HAVOC-7B Inference Server
+HAVOC-2B Inference Server
 
 Usage:
     python scripts/serve.py --config configs/inference/default_inference.yaml
     python scripts/serve.py --checkpoint checkpoints/checkpoint_step_10000 --port 8080
 
-This script starts the FastAPI server for serving the HAVOC-7B model.
+This script starts the FastAPI server for serving the HAVOC-2B model.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ def load_config_from_yaml(config_path: str) -> InferenceConfig:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Serve HAVOC-7B model via FastAPI")
+    parser = argparse.ArgumentParser(description="Serve HAVOC-2B model via FastAPI")
     parser.add_argument(
         "--config",
         type=str,
@@ -114,7 +114,7 @@ def main():
 
     # Print configuration
     print("\n" + "=" * 80)
-    print("HAVOC-7B Inference Server Configuration")
+    print("HAVOC-2B Inference Server Configuration")
     print("=" * 80)
     print(f"Model: {config.model_config.num_layers} layers, {config.model_config.d_model} d_model")
     print(f"Vocab size: {config.model_config.vocab_size}")

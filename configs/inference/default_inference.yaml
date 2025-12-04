@@ -1,15 +1,15 @@
-# HAVOC-7B Default Inference Configuration
+# HAVOC-2B Default Inference Configuration
 #
-# This config is for serving the trained HAVOC-7B model via FastAPI.
+# This config is for serving the trained HAVOC-2B model via FastAPI.
 
 # ============================================================================
 # Model Configuration
 # ============================================================================
 model:
   vocab_size: 70000
-  d_model: 4096
-  num_layers: 32
-  max_seq_len: 4096
+  d_model: 2560
+  num_layers: 20
+  max_seq_len: 1024
   dropout: 0.0
   layer_norm_eps: 1.0e-5
   initializer_range: 0.02
@@ -19,14 +19,14 @@ model:
 
   attention:
     num_heads: 32
-    head_dim: 128
-    num_kv_heads: 8
+    head_dim: 80
+    num_kv_heads: 4
     rotary_dim: null
     rope_theta: 10000.0
 
   mlp:
-    hidden_dim: 11008
-    activation: swiglu
+    hidden_dim: 10240
+    activation: gelu
 
 # ============================================================================
 # Checkpoint

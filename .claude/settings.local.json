@@ -10,7 +10,8 @@
       "Bash(timeout 30 python:*)",
       "Bash(chmod:*)",
       "Bash(dir \"C:\\Users\\ScottT\\SLM\\artifacts\\tokenizer\")",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(dir \"C:\\Users\\ScottT\\Desktop\\HAVOC_PRETRAIN\")"
     ],
     "deny": [],
     "ask": []

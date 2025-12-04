@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-HAVOC-3B Training Script
+HAVOC-2B Training Script
 
 Usage:
     python scripts/train.py --config configs/training/default_training.yaml
     python scripts/train.py --config configs/training/default_training.yaml --resume checkpoints/checkpoint_step_1000
 
-This script is the main entrypoint for training the HAVOC-7B model.
+This script is the main entrypoint for training the HAVOC-2B model.
 """
 
 from __future__ import annotations
@@ -239,7 +239,7 @@ def create_datasets(config: TrainingConfig):
 
 def main():
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
-    parser = argparse.ArgumentParser(description="Train HAVOC-7B model")
+    parser = argparse.ArgumentParser(description="Train HAVOC-2B model")
     parser.add_argument(
         "--config",
         type=str,
@@ -341,7 +341,7 @@ def main():
 
     # Print configuration with resolved paths
     print("\n" + "=" * 80)
-    print("HAVOC-7B Training Configuration")
+    print("HAVOC-2B Training Configuration")
     print("=" * 80)
     print(f"Model: {config.model_config.num_layers} layers, {config.model_config.d_model} d_model")
     print(f"Vocab size: {config.model_config.vocab_size}")

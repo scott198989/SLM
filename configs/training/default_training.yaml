@@ -1,10 +1,10 @@
-# HAVOC-7B Default Training Configuration (RTX 5090 Optimized)
+# HAVOC-2B Default Training Configuration (single GPU friendly)
 
 model:
   vocab_size: 70000
-  d_model: 3072
-  num_layers: 22
-  max_seq_len: 2048         # 🔻 Reduced for VRAM
+  d_model: 2560
+  num_layers: 20
+  max_seq_len: 1024         # Reduced for VRAM / 2B context
   dropout: 0.0
   layer_norm_eps: 1.0e-5
   initializer_range: 0.02
@@ -13,21 +13,21 @@ model:
   eos_token_id: 2
 
   attention:
-    num_heads: 24
+    num_heads: 32
     head_dim: null
     num_kv_heads: 4
     rotary_dim: null
     rope_theta: 10000.0
 
   mlp:
-    hidden_dim: 12288
-    activation: swiglu
+    hidden_dim: 10240
+    activation: gelu
 
 data:
   domain_ratio: 0.6
   general_ratio: 0.3
   dialog_ratio: 0.1
-  max_sequence_length: 2048     # 🔻 Reduce activation memory
+  max_sequence_length: 1024     # Reduce activation memory and match 2B context
 
 tokenizer_path: /workspace/SLM/artifacts/tokenizer
 
@@ -38,7 +38,7 @@ data_sources:
       - /workspace/SLM/data/general/havoc_general_grounding_6510.jsonl
     weight: 1.0
 
-# === TRAINING ===  (H100 Optimized – JR Brain Build)
+# === TRAINING ===  (H100 Optimized - JR Brain Build)
 
 batch_size: 1
 gradient_accumulation_steps: 4
@@ -52,7 +52,7 @@ max_grad_norm: 1.0
 
 warmup_steps: 1500                     # longer warmup = stable H100 training
 lr_scheduler_type: cosine
-min_learning_rate: 2.0e-5              # slower landing so it doesn’t forget
+min_learning_rate: 2.0e-5              # slower landing so it doesn't forget
 
 use_amp: true
 amp_dtype: float16

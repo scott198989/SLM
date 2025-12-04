@@ -1,0 +1,101 @@
+# HAVOC-2B COMPLETE Pretraining Configuration
+# Uses ALL available pretraining data: 28GB txt + 118GB jsonl = 146GB total
+
+model:
+  vocab_size: 70000
+  d_model: 2560
+  num_layers: 20              # REQUIRED by train.py guard
+  max_seq_len: 2048
+  dropout: 0.0
+  layer_norm_eps: 1.0e-5
+  initializer_range: 0.02
+  pad_token_id: 0
+  bos_token_id: 1
+  eos_token_id: 2
+
+  attention:
+    num_heads: 32             # REQUIRED by train.py guard
+    head_dim: null
+    num_kv_heads: 4           # REQUIRED by train.py guard
+    rotary_dim: null
+    rope_theta: 10000.0
+
+  mlp:
+    hidden_dim: 10240         # REQUIRED by train.py guard
+    activation: gelu
+
+data:
+  domain_ratio: 1.0           # Complete multi-domain pretraining
+  general_ratio: 0.0
+  dialog_ratio: 0.0
+  max_sequence_length: 2048
+
+tokenizer_path: artifacts/tokenizer
+
+# Use ALL HAVOC_PRETRAIN data - both txt and jsonl
+data_sources:
+  # Math/reasoning Q&A data (28GB)
+  - name: reasoning_qa_train
+    type: text                # Plain text format (.txt)
+    paths:
+      - C:/Users/ScottT/Desktop/HAVOC_PRETRAIN/train.txt
+    weight: 0.2               # 20% - math/reasoning problems
+
+  # Academic textbooks and long-form content (118GB)
+  - name: academic_textbooks_train
+    type: jsonl               # JSONL format
+    paths:
+      - C:/Users/ScottT/Desktop/HAVOC_PRETRAIN/pretrain_train.jsonl
+    weight: 0.7               # 70% - comprehensive academic knowledge
+
+  # Validation data
+  - name: reasoning_qa_val
+    type: text
+    paths:
+      - C:/Users/ScottT/Desktop/HAVOC_PRETRAIN/validation.txt
+    weight: 0.05              # 5% - math validation
+
+  - name: academic_textbooks_val
+    type: jsonl
+    paths:
+      - C:/Users/ScottT/Desktop/HAVOC_PRETRAIN/pretrain_val.jsonl
+    weight: 0.05              # 5% - academic validation
+
+# === TRAINING SETTINGS ===
+
+batch_size: 1
+gradient_accumulation_steps: 16   # Effective batch = 16
+
+max_epochs: null
+max_steps: 500000             # Longer training for 146GB dataset
+
+learning_rate: 3.0e-4
+weight_decay: 0.1
+max_grad_norm: 1.0
+
+warmup_steps: 5000            # Longer warmup for larger dataset
+lr_scheduler_type: cosine
+min_learning_rate: 3.0e-5
+
+# Mixed precision - CRITICAL for VRAM efficiency
+use_amp: true
+amp_dtype: bfloat16
+
+checkpoint_dir: checkpoints/havoc_phase0_complete
+save_every_n_steps: 2000      # Save less frequently (larger dataset)
+keep_last_n_checkpoints: 5
+resume_from_checkpoint: null
+
+eval_every_n_steps: 2000
+eval_samples: 256
+log_eval_examples: 2
+example_prompt_length: 128
+example_max_new_tokens: 128
+
+log_every_n_steps: 50
+log_dir: logs/havoc_phase0_complete
+log_json_metrics: true
+use_tensorboard: false
+
+device: cuda
+seed: 42

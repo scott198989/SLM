@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class InferenceEngine:
     """
-    Inference engine for HAVOC-7B model.
+    Inference engine for HAVOC-2B model.
 
     Handles:
     - Model loading from checkpoint
@@ -42,7 +42,7 @@ class InferenceEngine:
     def _load_model(self) -> HavocModel:
         """Load model from checkpoint or create new model."""
         if self.config.model_config is None:
-            self.config.model_config = HavocConfig.havoc_7b()
+            self.config.model_config = HavocConfig.havoc_2b()
 
         # Prefer safetensors if present
         checkpoint_path = Path(self.config.checkpoint_path) if self.config.checkpoint_path else None

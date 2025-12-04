@@ -10,11 +10,27 @@ from havoc_core.mlp import MLPConfig
 @dataclass
 class HavocConfig:
     vocab_size: int = 70000
-    d_model: int = 3072
-    num_layers: int = 22
-    max_seq_len: int = 2048
-    attention: AttentionConfig = field(default_factory=AttentionConfig)
-    mlp: MLPConfig = field(default_factory=MLPConfig)
+    d_model: int = 2560
+    num_layers: int = 20
+    max_seq_len: int = 1024
+    attention: AttentionConfig = field(
+        default_factory=lambda: AttentionConfig(
+            num_heads=32,
+            num_kv_heads=4,
+            head_dim=None,
+            dropout=0.0,
+            rotary_dim=None,
+            rope_theta=10000.0,
+            bias=False,
+        )
+    )
+    mlp: MLPConfig = field(
+        default_factory=lambda: MLPConfig(
+            hidden_dim=10240,
+            activation="gelu",
+            dropout=0.0,
+        )
+    )
     dropout: float = 0.0
     layer_norm_eps: float = 1e-5
     initializer_range: float = 0.02
@@ -23,8 +39,18 @@ class HavocConfig:
     eos_token_id: int = 2
 
     @classmethod
-    def havoc_7b(cls) -> "HavocConfig":
+    def havoc_2b(cls) -> "HavocConfig":
+        """Return the default 2B architecture (Option-E)."""
         return cls()
+
+    @classmethod
+    def havoc_7b(cls) -> "HavocConfig":
+        """
+        Legacy alias to the current default (2B) config.
+
+        For the full 7B specification, use Havoc7BConfig in config_7b.py.
+        """
+        return cls.havoc_2b()
 
 
 @dataclass
@@ -58,7 +84,7 @@ class DataMixtureConfig:
     domain_ratio: float = 0.6
     general_ratio: float = 0.3
     dialog_ratio: float = 0.1
-    max_sequence_length: int = 2048
+    max_sequence_length: int = 1024
     samples_per_epoch: int = 1024
     pack_sequences: bool = True
     add_bos: bool = True

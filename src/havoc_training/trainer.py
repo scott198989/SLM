@@ -289,7 +289,7 @@ class Trainer:
 
             self.current_epoch = epoch
             epoch_label = epoch + 1
-            logger.info(f"\n--- Epoch {epoch_label}/{self.config.max_epochs or '∞'} ---")
+            logger.info(f"\n--- Epoch {epoch_label}/{self.config.max_epochs or 'inf'} ---")
 
             for step, batch in enumerate(train_loader):
                 if self.config.max_steps is not None and self.global_step >= self.config.max_steps:

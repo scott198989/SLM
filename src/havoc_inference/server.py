@@ -45,7 +45,7 @@ class CompletionResponse(BaseModel):
 
     text: str = Field(..., description="Generated text")
     prompt: str = Field(..., description="Original prompt")
-    model: str = Field("havoc-7b", description="Model name")
+    model: str = Field("havoc-2b", description="Model name")
     usage: dict = Field(..., description="Token usage statistics")
 
 
@@ -74,7 +74,7 @@ class ChatResponse(BaseModel):
     """Response for chat completion."""
 
     message: ChatMessage = Field(..., description="Generated message")
-    model: str = Field("havoc-7b", description="Model name")
+    model: str = Field("havoc-2b", description="Model name")
     usage: dict = Field(..., description="Token usage statistics")
 
 
@@ -112,8 +112,8 @@ async def lifespan(app: FastAPI):
 def create_app(config: InferenceConfig) -> FastAPI:
     """Create FastAPI application."""
     app = FastAPI(
-        title="HAVOC-7B Inference API",
-        description="REST API for HAVOC-7B language model inference",
+        title="HAVOC-2B Inference API",
+        description="REST API for HAVOC-2B language model inference",
         version="0.1.0",
         lifespan=lifespan,
     )
@@ -138,7 +138,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
     async def root():
         """Root endpoint."""
         return {
-            "message": "HAVOC-7B Inference API",
+            "message": "HAVOC-2B Inference API",
             "version": "0.1.0",
             "endpoints": {
                 "completion": "/completion",
@@ -155,7 +155,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
 
         return HealthResponse(
             status="ok",
-            model="havoc-7b",
+            model="havoc-2b",
             device=str(inference_engine.device),
             timestamp=time.time(),
         )
@@ -168,7 +168,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
 
         return HealthResponse(
             status="ready",
-            model="havoc-7b",
+            model="havoc-2b",
             device=str(inference_engine.device),
             timestamp=time.time(),
         )
@@ -178,7 +178,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
         """
         Text completion endpoint.
 
-        Generate text from a prompt using the HAVOC-7B model.
+        Generate text from a prompt using the HAVOC-2B model.
         """
         if inference_engine is None:
             raise HTTPException(status_code=503, detail="Inference engine not initialized")
@@ -220,7 +220,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
                 return CompletionResponse(
                     text=generated_text,
                     prompt=request.prompt,
-                    model="havoc-7b",
+                    model="havoc-2b",
                     usage={
                         "prompt_tokens": len(request.prompt.split()),
                         "completion_tokens": len(generated_text.split()),
@@ -285,7 +285,7 @@ def create_app(config: InferenceConfig) -> FastAPI:
 
                 return ChatResponse(
                     message=ChatMessage(role="assistant", content=generated_text),
-                    model="havoc-7b",
+                    model="havoc-2b",
                     usage={
                         "prompt_tokens": len(prompt.split()),
                         "completion_tokens": len(generated_text.split()),

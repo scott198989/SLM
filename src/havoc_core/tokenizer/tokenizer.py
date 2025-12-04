@@ -44,6 +44,18 @@ class HavocTokenizer:
     # -----------------------------
     # Core encode/decode
     # -----------------------------
+    def __call__(self, text: str, add_bos: bool = True, add_eos: bool = True) -> List[int]:
+        """
+        Make tokenizer callable for compatibility with dataset.
+        Encode text into token IDs with optional BOS/EOS tokens.
+        """
+        token_ids = self.sp.encode(text, out_type=int)
+        if add_bos:
+            token_ids = [self.bos_token_id] + token_ids
+        if add_eos:
+            token_ids = token_ids + [self.eos_token_id]
+        return token_ids
+
     def encode(self, text: str) -> List[int]:
         """Encode text into token IDs."""
         return [self.bos_token_id] + self.sp.encode(text, out_type=int) + [self.eos_token_id]
