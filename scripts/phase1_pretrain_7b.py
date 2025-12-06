@@ -204,9 +204,10 @@ def main():
     # Initialize distributed training if running with torchrun
     use_distributed = "RANK" in os.environ and "WORLD_SIZE" in os.environ
     if use_distributed:
-        dist.init_process_group(backend="nccl")
         local_rank = int(os.environ["LOCAL_RANK"])
+        # Set device BEFORE initializing process group to avoid CUDA context issues
         torch.cuda.set_device(local_rank)
+        dist.init_process_group(backend="nccl")
         is_main = (local_rank == 0)
     else:
         is_main = True
