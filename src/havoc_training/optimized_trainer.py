@@ -1,7 +1,7 @@
 """
 Memory-Optimized Trainer for HAVOC-7B
 
-Designed for single-GPU training on RTX 5090 (24GB VRAM)
+Supports single-GPU and multi-GPU (DDP) training
 Uses gradient checkpointing, mixed precision, and gradient accumulation
 """
 
@@ -12,6 +12,8 @@ import json
 import time
 import torch
 import torch.nn as nn
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast, GradScaler
 from typing import Optional, Dict, Any
@@ -49,12 +51,34 @@ class OptimizedTrainer:
         self.val_dataloader = val_dataloader
         self.tokenizer = tokenizer
 
-        self.device = torch.device(train_config.device if torch.cuda.is_available() else "cpu")
+        # Distributed training setup
+        self.is_distributed = dist.is_available() and dist.is_initialized()
+        self.local_rank = int(os.environ.get("LOCAL_RANK", 0)) if self.is_distributed else 0
+        self.world_size = dist.get_world_size() if self.is_distributed else 1
+        self.is_main_process = (not self.is_distributed) or (self.local_rank == 0)
+
+        # Device setup
+        if self.is_distributed:
+            self.device = torch.device(f"cuda:{self.local_rank}")
+        else:
+            self.device = torch.device(train_config.device if torch.cuda.is_available() else "cpu")
+
         self.model.to(self.device)
 
         # Enable gradient checkpointing
         if train_config.gradient_checkpointing:
             self._enable_gradient_checkpointing()
+
+        # Wrap model in DDP if distributed
+        if self.is_distributed:
+            self.model = DDP(
+                self.model,
+                device_ids=[self.local_rank],
+                output_device=self.local_rank,
+                find_unused_parameters=False
+            )
+            if self.is_main_process:
+                print(f"✓ Model wrapped in DistributedDataParallel (world_size={self.world_size})")
 
         # Initialize optimizer
         self.optimizer = self._create_optimizer()
@@ -73,15 +97,17 @@ class OptimizedTrainer:
         self.current_epoch = 0
         self.best_val_loss = float('inf')
 
-        # Create directories
-        Path(train_config.checkpoint_dir).mkdir(parents=True, exist_ok=True)
-        Path(train_config.log_dir).mkdir(parents=True, exist_ok=True)
+        # Create directories (only on main process)
+        if self.is_main_process:
+            Path(train_config.checkpoint_dir).mkdir(parents=True, exist_ok=True)
+            Path(train_config.log_dir).mkdir(parents=True, exist_ok=True)
 
-        # Print memory estimate
-        print("\n" + "=" * 70)
-        print("INITIALIZING OPTIMIZED TRAINER FOR HAVOC-7B")
-        print("=" * 70)
-        train_config.print_memory_estimate()
+        # Print memory estimate (only on main process)
+        if self.is_main_process:
+            print("\n" + "=" * 70)
+            print("INITIALIZING OPTIMIZED TRAINER FOR HAVOC-7B")
+            print("=" * 70)
+            train_config.print_memory_estimate()
 
     def _enable_gradient_checkpointing(self):
         """Enable gradient checkpointing for memory efficiency"""

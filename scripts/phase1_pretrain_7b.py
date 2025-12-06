@@ -3,20 +3,33 @@ PHASE 1: Pretrain HAVOC-7B from Scratch
 
 Train base language model on 100B tokens (domain-specific + general knowledge).
 
-Usage:
+Usage (Single GPU):
     python scripts/phase1_pretrain_7b.py --data-dir data --checkpoint-dir checkpoints/phase1
 
+Usage (Multi-GPU with torchrun):
+    torchrun --nproc_per_node=2 scripts/phase1_pretrain_7b.py \
+        --data-dir /workspace/data \
+        --tokenizer-path /workspace/SLM/artifacts/tokenizer \
+        --checkpoint-dir /workspace/SLM/checkpoints/phase1_h200 \
+        --batch-size 4 \
+        --gradient-accumulation-steps 8 \
+        --max-seq-len 2048
+
 Expected training time:
-    - H200 (141GB): ~18-24 hours (recommended: batch_size=4, grad_accum=16, seq_len=2048)
+    - 2x H200 (141GB each): ~9-12 hours (batch_size=4 per GPU, grad_accum=8)
+    - 1x H200 (141GB): ~18-24 hours (batch_size=4, grad_accum=16, seq_len=2048)
     - RTX 5090 (24GB): ~1000 GPU-hours (~42 days)
 
 NOTE: Gradient checkpointing is REQUIRED even on H200 for this 6B model.
 """
 
 import argparse
+import os
 import torch
+import torch.distributed as dist
 from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 import sentencepiece as spm
 
 from havoc_core.config_7b import Havoc7BConfig, OptimizedTrainingConfig
@@ -112,7 +125,7 @@ def load_tokenizer(tokenizer_path: str):
     return sp
 
 
-def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: int, split: str = "train"):
+def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: int, split: str = "train", use_distributed: bool = False):
     """Create dataloader for pretraining with streaming"""
 
     data_path = Path(data_dir)
@@ -124,23 +137,41 @@ def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: in
         if domain_path.exists():
             txt_files = list(domain_path.glob("*.txt"))
             file_paths.extend(txt_files)
-            print(f"Found {len(txt_files)} files in {domain}/")
+            is_main = (not use_distributed) or (int(os.environ.get("LOCAL_RANK", 0)) == 0)
+            if is_main:
+                print(f"Found {len(txt_files)} files in {domain}/")
 
     if not file_paths:
         raise ValueError(f"No data files found in {data_dir}")
 
-    print(f"\nTotal files: {len(file_paths)}")
+    is_main = (not use_distributed) or (int(os.environ.get("LOCAL_RANK", 0)) == 0)
+    if is_main:
+        print(f"\nTotal files: {len(file_paths)}")
 
     # Create streaming dataset (no pre-tokenization needed!)
     # Use 10k samples per epoch for faster iteration
     samples_per_epoch = 10000 if split == "train" else 1000
     dataset = StreamingTextDataset(file_paths, tokenizer, max_seq_len, samples_per_epoch=samples_per_epoch)
 
+    # Create sampler for distributed training
+    sampler = None
+    shuffle = False
+    if use_distributed:
+        sampler = DistributedSampler(
+            dataset,
+            shuffle=(split == "train"),
+            drop_last=True
+        )
+        shuffle = False  # Sampler handles shuffling
+    else:
+        shuffle = (split == "train")
+
     # Create dataloader
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=(split == "train"),
+        shuffle=shuffle,
+        sampler=sampler,
         num_workers=0,  # Set to 0 to avoid multiprocessing issues with lazy loading
         pin_memory=True
     )
@@ -170,14 +201,30 @@ def main():
 
     args = parser.parse_args()
 
+    # Initialize distributed training if running with torchrun
+    use_distributed = "RANK" in os.environ and "WORLD_SIZE" in os.environ
+    if use_distributed:
+        dist.init_process_group(backend="nccl")
+        local_rank = int(os.environ["LOCAL_RANK"])
+        torch.cuda.set_device(local_rank)
+        is_main = (local_rank == 0)
+    else:
+        is_main = True
+
     # Set seed
     torch.manual_seed(42)
+    if use_distributed:
+        # Ensure different seeds for different ranks
+        torch.manual_seed(42 + dist.get_rank())
 
     # Load tokenizer
-    print("=" * 70)
-    print("PHASE 1: PRETRAINING HAVOC-7B")
-    print("=" * 70)
-    print("\nLoading tokenizer...")
+    if is_main:
+        print("=" * 70)
+        print("PHASE 1: PRETRAINING HAVOC-7B")
+        if use_distributed:
+            print(f"MULTI-GPU MODE: {dist.get_world_size()} GPUs")
+        print("=" * 70)
+        print("\nLoading tokenizer...")
     tokenizer = load_tokenizer(args.tokenizer_path)
 
     # Create model config
@@ -204,13 +251,14 @@ def main():
     )
 
     # Create dataloaders
-    print("\nCreating dataloaders...")
+    if is_main:
+        print("\nCreating dataloaders...")
     train_dataloader = create_dataloader(
-        args.data_dir, tokenizer, args.batch_size, args.max_seq_len, split="train"
+        args.data_dir, tokenizer, args.batch_size, args.max_seq_len, split="train", use_distributed=use_distributed
     )
 
     val_dataloader = create_dataloader(
-        args.data_dir, tokenizer, args.batch_size, args.max_seq_len, split="val"
+        args.data_dir, tokenizer, args.batch_size, args.max_seq_len, split="val", use_distributed=use_distributed
     )
 
     # Create trainer

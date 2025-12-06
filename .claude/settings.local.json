@@ -12,7 +12,8 @@
       "Bash(dir \"C:\\Users\\ScottT\\SLM\\artifacts\\tokenizer\")",
       "Bash(mkdir:*)",
       "Bash(dir \"C:\\Users\\ScottT\\Desktop\\HAVOC_PRETRAIN\")",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(nvidia-smi --list-gpus)"
     ],
     "deny": [],
     "ask": []
