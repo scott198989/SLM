@@ -7,7 +7,7 @@ from transformers import PreTrainedTokenizerFast
 # ================================================
 # CONFIGURE THESE PATHS
 # ================================================
-CHECKPOINT = "/workspace/SLM/checkpoints/havoc_phase0_complete/checkpoint_interrupted"
+CHECKPOINT_DIR = "/workspace/SLM/checkpoints/havoc_phase0_complete/checkpoint_interrupted"
 TOKENIZER_PATH = "/workspace/SLM/artifacts/tokenizer"
 
 # ================================================
@@ -19,7 +19,7 @@ tokenizer = PreTrainedTokenizerFast.from_pretrained(TOKENIZER_PATH)
 # ================================================
 # LOAD MODEL CONFIG + MODEL
 # ================================================
-print(f"Loading model config from checkpoint: {CHECKPOINT_DIR}")
+print(f"Loading model config from: {CHECKPOINT_DIR}")
 
 config_path = Path(CHECKPOINT_DIR) / "config.json"
 config = Havoc7BConfig.from_json_file(str(config_path))
@@ -27,9 +27,18 @@ config = Havoc7BConfig.from_json_file(str(config_path))
 print("Initializing model...")
 model = HavocPrimeModel(config)
 
-print("Loading model weights...")
-state_dict = torch.load(Path(CHECKPOINT_DIR) / "pytorch_model.bin", map_location="cpu")
-model.load_state_dict(state_dict)
+# ================================================
+# LOAD MODEL WEIGHTS
+# ================================================
+weights_path = Path(CHECKPOINT_DIR) / "model.pt"
+print(f"Loading model weights from: {weights_path}")
+
+state_dict = torch.load(weights_path, map_location="cpu")
+
+missing, unexpected = model.load_state_dict(state_dict, strict=False)
+print("\nLoad report:")
+print("  Missing keys:", missing)
+print("  Unexpected keys:", unexpected)
 
 model.eval()
 model.to("cuda")
