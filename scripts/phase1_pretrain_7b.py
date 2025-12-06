@@ -22,37 +22,38 @@ from havoc_core.model.prime_model import HavocPrimeModel
 from havoc_training.optimized_trainer import OptimizedTrainer
 
 
-class TextDataset(Dataset):
-    """Lazy-loading text dataset for pretraining with LRU cache"""
+class PreTokenizedDataset(Dataset):
+    """Fast dataset using pre-tokenized .pt files"""
 
-    def __init__(self, file_paths: list, tokenizer, max_seq_len: int = 2048, samples_per_epoch: int = 10000):
+    def __init__(self, file_paths: list, max_seq_len: int = 2048, samples_per_epoch: int = 10000):
         import random
         self.file_paths = file_paths
-        self.tokenizer = tokenizer
         self.max_seq_len = max_seq_len
         self.samples_per_epoch = samples_per_epoch
-        self.cache = {}  # Simple cache for recently accessed files
-        self.max_cache_size = 20  # Cache up to 20 files
+        self.cache = {}  # Cache for loaded tensors
+        self.max_cache_size = 30  # Cache more files since loading is cheap
 
-        print(f"Dataset initialized with {len(file_paths)} files")
+        print(f"Dataset initialized with {len(file_paths)} pre-tokenized files")
         print(f"Samples per epoch: {samples_per_epoch:,}")
         print(f"Max sequence length: {max_seq_len}\n")
 
     def __len__(self):
         return self.samples_per_epoch
 
-    def _load_and_tokenize(self, file_path):
-        """Load and tokenize file with caching"""
+    def _load_tokens(self, file_path):
+        """Load pre-tokenized file with caching"""
         file_str = str(file_path)
 
         # Check cache
         if file_str in self.cache:
             return self.cache[file_str]
 
-        # Read and tokenize
-        with open(file_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-        tokens = self.tokenizer.encode(text)
+        # Load pre-tokenized tensor (FAST!)
+        tokens = torch.load(file_path, map_location='cpu')
+
+        # Convert to list for easier manipulation
+        if isinstance(tokens, torch.Tensor):
+            tokens = tokens.tolist()
 
         # Add to cache (LRU eviction)
         if len(self.cache) >= self.max_cache_size:
@@ -64,19 +65,12 @@ class TextDataset(Dataset):
 
     def __getitem__(self, idx):
         import random
-        import time
 
         # Pick a random file
         file_path = random.choice(self.file_paths)
 
-        # Load and tokenize (with caching)
-        start_time = time.time()
-        tokens = self._load_and_tokenize(file_path)
-        load_time = time.time() - start_time
-
-        # Log slow loads (>5 seconds)
-        if load_time > 5:
-            print(f"[WARNING] Slow file load: {file_path.name} took {load_time:.1f}s, {len(tokens):,} tokens")
+        # Load pre-tokenized data (FAST - no encoding needed!)
+        tokens = self._load_tokens(file_path)
 
         # Sample a random chunk
         if len(tokens) < self.max_seq_len:
@@ -115,24 +109,33 @@ def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: in
 
     data_path = Path(data_dir)
 
-    # Collect files
+    # Collect PRE-TOKENIZED files (.pt)
     file_paths = []
     for domain in ["math", "stats", "engineering", "general", "code"]:
         domain_path = data_path / domain
         if domain_path.exists():
-            files = list(domain_path.glob("*.txt"))
-            file_paths.extend(files)
-            print(f"Found {len(files)} files in {domain}/")
+            # Look for .pt files first (pre-tokenized)
+            pt_files = list(domain_path.glob("*.pt"))
+            if pt_files:
+                file_paths.extend(pt_files)
+                print(f"Found {len(pt_files)} pre-tokenized files in {domain}/")
+            else:
+                # Fall back to .txt files (will be slow!)
+                txt_files = list(domain_path.glob("*.txt"))
+                if txt_files:
+                    print(f"[WARNING] Found {len(txt_files)} .txt files in {domain}/ - these should be pre-tokenized!")
+                    print(f"[WARNING] Run: python scripts/pretokenize_data.py --data-dir {domain_path} --tokenizer-path <tokenizer>")
+                    raise ValueError(f"Please pre-tokenize data in {domain_path} before training!")
 
     if not file_paths:
-        raise ValueError(f"No data files found in {data_dir}")
+        raise ValueError(f"No pre-tokenized (.pt) data files found in {data_dir}")
 
-    print(f"\nTotal files: {len(file_paths)}")
+    print(f"\nTotal pre-tokenized files: {len(file_paths)}")
 
     # Create dataset
     # Use 10k samples per epoch for faster iteration with large datasets
     samples_per_epoch = 10000 if split == "train" else 1000
-    dataset = TextDataset(file_paths, tokenizer, max_seq_len, samples_per_epoch=samples_per_epoch)
+    dataset = PreTokenizedDataset(file_paths, max_seq_len, samples_per_epoch=samples_per_epoch)
 
     # Create dataloader
     dataloader = DataLoader(
