@@ -205,9 +205,29 @@ def main():
     use_distributed = "RANK" in os.environ and "WORLD_SIZE" in os.environ
     if use_distributed:
         local_rank = int(os.environ["LOCAL_RANK"])
-        # Set device BEFORE initializing process group to avoid CUDA context issues
-        torch.cuda.set_device(local_rank)
+
+        # Debug: Print GPU info
+        print(f"[Rank {local_rank}] Initializing on GPU {local_rank}")
+        print(f"[Rank {local_rank}] CUDA available: {torch.cuda.is_available()}")
+        print(f"[Rank {local_rank}] Available GPUs: {torch.cuda.device_count()}")
+
+        # Initialize CUDA context on rank 0 first
+        if local_rank == 0:
+            # Initialize CUDA
+            _ = torch.zeros(1).cuda(local_rank)
+            print(f"[Rank {local_rank}] CUDA initialized on GPU {local_rank}")
+
+        # Initialize process group FIRST (before setting device for rank 1)
         dist.init_process_group(backend="nccl")
+
+        # Synchronize to ensure rank 0 has initialized
+        if dist.is_initialized():
+            dist.barrier()
+
+        # Now set the device
+        torch.cuda.set_device(local_rank)
+        print(f"[Rank {local_rank}] Set device to cuda:{local_rank}")
+
         is_main = (local_rank == 0)
     else:
         is_main = True
