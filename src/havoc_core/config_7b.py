@@ -103,13 +103,14 @@ class Havoc7BConfig(HavocConfig):
         """Save config to checkpoint"""
         import json
         from pathlib import Path
+        from dataclasses import asdict
 
         save_dir = Path(save_path)
         save_dir.mkdir(parents=True, exist_ok=True)
 
         config_file = save_dir / "config.json"
         with open(config_file, 'w') as f:
-            json.dump(self.__dict__, f, indent=2)
+            json.dump(asdict(self), f, indent=2)
 
     def get_param_count(self) -> int:
         """Calculate total parameter count"""
