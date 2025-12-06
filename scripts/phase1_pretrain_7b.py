@@ -6,7 +6,9 @@ Train base language model on 100B tokens (domain-specific + general knowledge).
 Usage:
     python scripts/phase1_pretrain_7b.py --data-dir data --checkpoint-dir checkpoints/phase1
 
-Expected training time: ~1000 GPU-hours on RTX 5090 (~42 days)
+Expected training time:
+    - H200 (141GB): ~18 hours (recommended: batch_size=16, grad_accum=4, seq_len=4096)
+    - RTX 5090 (24GB): ~1000 GPU-hours (~42 days)
 """
 
 import argparse
@@ -78,7 +80,7 @@ def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: in
     for domain in ["math", "stats", "engineering", "general", "code"]:
         domain_path = data_path / domain
         if domain_path.exists():
-            files = list(domain_path.glob("**/*.txt"))
+            files = list(domain_path.glob("*.txt"))
             file_paths.extend(files)
             print(f"Found {len(files)} files in {domain}/")
 
@@ -114,11 +116,11 @@ def main():
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints/phase1", help="Checkpoint directory")
 
     # Training
-    parser.add_argument("--batch-size", type=int, default=1, help="Batch size (keep at 1 for 24GB GPU)")
-    parser.add_argument("--gradient-accumulation-steps", type=int, default=32, help="Gradient accumulation")
+    parser.add_argument("--batch-size", type=int, default=1, help="Batch size (1 for 24GB GPU, 16-32 for H200)")
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=32, help="Gradient accumulation (32 for 24GB, 4 for H200)")
     parser.add_argument("--max-steps", type=int, default=100000, help="Max training steps")
     parser.add_argument("--learning-rate", type=float, default=3e-4, help="Learning rate")
-    parser.add_argument("--max-seq-len", type=int, default=2048, help="Max sequence length")
+    parser.add_argument("--max-seq-len", type=int, default=2048, help="Max sequence length (2048 for 24GB, 4096 for H200)")
 
     # Resume
     parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint")
@@ -151,8 +153,8 @@ def main():
         learning_rate=args.learning_rate,
         max_steps=args.max_steps,
         checkpoint_dir=args.checkpoint_dir,
-        gradient_checkpointing=True,  # CRITICAL for 24GB
-        use_flash_attention=True,     # CRITICAL for memory
+        gradient_checkpointing=False,  # Disabled for H200 (141GB VRAM) - prioritize speed
+        use_flash_attention=True,      # Keep enabled for Hopper architecture
         use_amp=True,
         amp_dtype="bfloat16"
     )
