@@ -63,7 +63,8 @@ class StreamingTextDataset(Dataset):
         file_path = random.choices(self.file_paths, weights=self.file_probs, k=1)[0]
 
         # Memory-map the file for fast random access
-        with open(file_path, 'r', encoding='utf-8') as f:
+        # Use errors='ignore' to skip invalid UTF-8 bytes
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             # Read a random chunk from the file
             f.seek(0, 2)  # Seek to end
             file_size = f.tell()
