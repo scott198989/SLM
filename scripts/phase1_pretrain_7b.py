@@ -211,22 +211,17 @@ def main():
         print(f"[Rank {local_rank}] CUDA available: {torch.cuda.is_available()}")
         print(f"[Rank {local_rank}] Available GPUs: {torch.cuda.device_count()}")
 
-        # Initialize CUDA context on rank 0 first
-        if local_rank == 0:
-            # Initialize CUDA
-            _ = torch.zeros(1).cuda(local_rank)
-            print(f"[Rank {local_rank}] CUDA initialized on GPU {local_rank}")
-
-        # Initialize process group FIRST (before setting device for rank 1)
-        dist.init_process_group(backend="nccl")
-
-        # Synchronize to ensure rank 0 has initialized
-        if dist.is_initialized():
-            dist.barrier()
-
-        # Now set the device
+        # Set CUDA device FIRST for each rank
         torch.cuda.set_device(local_rank)
         print(f"[Rank {local_rank}] Set device to cuda:{local_rank}")
+
+        # Initialize CUDA context
+        _ = torch.zeros(1).cuda(local_rank)
+        print(f"[Rank {local_rank}] CUDA initialized on GPU {local_rank}")
+
+        # Initialize process group
+        dist.init_process_group(backend="nccl")
+        print(f"[Rank {local_rank}] Process group initialized")
 
         is_main = (local_rank == 0)
     else:
