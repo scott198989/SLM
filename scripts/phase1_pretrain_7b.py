@@ -1,3 +1,4 @@
+cat << 'EOF' > scripts/phase1_pretrain_7b.py
 """
 PHASE 1: Pretrain HAVOC-7B from Scratch
 
@@ -14,13 +15,6 @@ Usage (Multi-GPU with torchrun):
         --batch-size 4 \
         --gradient-accumulation-steps 8 \
         --max-seq-len 2048
-
-Expected training time:
-    - 2x H200 (141GB each): ~9-12 hours (batch_size=4 per GPU, grad_accum=8)
-    - 1x H200 (141GB): ~18-24 hours (batch_size=4, grad_accum=16, seq_len=2048)
-    - RTX 5090 (24GB): ~1000 GPU-hours (~42 days)
-
-NOTE: Gradient checkpointing is REQUIRED even on H200 for this 6B model.
 """
 
 import argparse
@@ -42,7 +36,6 @@ class StreamingTextDataset(Dataset):
 
     def __init__(self, file_paths: list, tokenizer, max_seq_len: int = 2048, samples_per_epoch: int = 10000):
         import random
-        import mmap
 
         self.file_paths = file_paths
         self.tokenizer = tokenizer
@@ -54,9 +47,12 @@ class StreamingTextDataset(Dataset):
         self.file_sizes = []
         total_size = 0
         for fp in file_paths:
-            size = fp.stat().st_size
-            self.file_sizes.append(size)
-            total_size += size
+            try:
+                size = fp.stat().st_size
+                self.file_sizes.append(size)
+                total_size += size
+            except Exception as e:
+                print(f"Skipping {fp}: {e}")
 
         # Normalize to probabilities
         self.file_probs = [s / total_size for s in self.file_sizes]
@@ -72,41 +68,44 @@ class StreamingTextDataset(Dataset):
     def __getitem__(self, idx):
         import random
 
-        # Weighted random file selection (larger files sampled more often)
+        # Weighted random file selection
         file_path = random.choices(self.file_paths, weights=self.file_probs, k=1)[0]
 
-        # Memory-map the file for fast random access
-        # Use errors='ignore' to skip invalid UTF-8 bytes
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            # Read a random chunk from the file
-            f.seek(0, 2)  # Seek to end
-            file_size = f.tell()
+        try:
+            # Memory-map or read file with error handling
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                f.seek(0, 2)  # Seek to end
+                file_size = f.tell()
 
-            # Choose random starting position (leave room for max_seq_len * 6 chars)
-            max_chars = self.max_seq_len * 6  # Rough estimate: 6 chars per token
-            if file_size > max_chars:
-                start_pos = random.randint(0, file_size - max_chars)
-                f.seek(start_pos)
-                # Read from there
-                chunk_text = f.read(max_chars)
+                max_chars = self.max_seq_len * 6
+                if file_size > max_chars:
+                    start_pos = random.randint(0, file_size - max_chars)
+                    f.seek(start_pos)
+                    chunk_text = f.read(max_chars)
+                else:
+                    f.seek(0)
+                    chunk_text = f.read()
+
+            # Tokenize
+            tokens = self.tokenizer.encode(chunk_text)
+
+            # Pad or truncate
+            if len(tokens) < self.max_seq_len:
+                tokens = tokens + [0] * (self.max_seq_len - len(tokens))
             else:
-                # Small file - read all
-                f.seek(0)
-                chunk_text = f.read()
+                tokens = tokens[:self.max_seq_len]
 
-        # Tokenize the chunk
-        tokens = self.tokenizer.encode(chunk_text)
-
-        # Trim or pad to exact length
-        if len(tokens) < self.max_seq_len:
-            tokens = tokens + [0] * (self.max_seq_len - len(tokens))
-        else:
-            tokens = tokens[:self.max_seq_len]
-
-        return {
-            "input_ids": torch.tensor(tokens[:-1], dtype=torch.long),
-            "labels": torch.tensor(tokens[1:], dtype=torch.long)
-        }
+            return {
+                "input_ids": torch.tensor(tokens[:-1], dtype=torch.long),
+                "labels": torch.tensor(tokens[1:], dtype=torch.long)
+            }
+        except Exception as e:
+            # Fallback for read errors
+            print(f"Error reading {file_path}: {e}")
+            return {
+                "input_ids": torch.zeros(self.max_seq_len - 1, dtype=torch.long),
+                "labels": torch.zeros(self.max_seq_len - 1, dtype=torch.long)
+            }
 
 
 def load_tokenizer(tokenizer_path: str):
@@ -115,141 +114,106 @@ def load_tokenizer(tokenizer_path: str):
     model_file = Path(tokenizer_path) / "tokenizer.model"
 
     if not model_file.exists():
-        raise FileNotFoundError(
-            f"Tokenizer not found at {model_file}. "
-            f"Run Phase 0 first: python scripts/phase0_train_tokenizer.py"
-        )
+        raise FileNotFoundError(f"Tokenizer not found at {model_file}")
 
     sp.load(str(model_file))
-    print(f"Loaded tokenizer: vocab_size={sp.vocab_size()}")
     return sp
 
 
 def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: int, split: str = "train", use_distributed: bool = False):
-    """Create dataloader for pretraining with streaming"""
-
+    """Create dataloader"""
     data_path = Path(data_dir)
-
-    # Collect text files
     file_paths = []
+
+    # Check domains
     for domain in ["math", "stats", "engineering", "general", "code"]:
         domain_path = data_path / domain
         if domain_path.exists():
             txt_files = list(domain_path.glob("*.txt"))
             file_paths.extend(txt_files)
-            is_main = (not use_distributed) or (int(os.environ.get("LOCAL_RANK", 0)) == 0)
-            if is_main:
-                print(f"Found {len(txt_files)} files in {domain}/")
 
     if not file_paths:
         raise ValueError(f"No data files found in {data_dir}")
 
+    # Log only on main process
     is_main = (not use_distributed) or (int(os.environ.get("LOCAL_RANK", 0)) == 0)
     if is_main:
-        print(f"\nTotal files: {len(file_paths)}")
+        print(f"Found {len(file_paths)} files for {split}")
 
-    # Create streaming dataset (no pre-tokenization needed!)
-    # Use 10k samples per epoch for faster iteration
     samples_per_epoch = 10000 if split == "train" else 1000
     dataset = StreamingTextDataset(file_paths, tokenizer, max_seq_len, samples_per_epoch=samples_per_epoch)
 
-    # Create sampler for distributed training
     sampler = None
-    shuffle = False
     if use_distributed:
-        sampler = DistributedSampler(
-            dataset,
-            shuffle=(split == "train"),
-            drop_last=True
-        )
-        shuffle = False  # Sampler handles shuffling
+        sampler = DistributedSampler(dataset, shuffle=(split == "train"), drop_last=True)
+        shuffle = False
     else:
         shuffle = (split == "train")
 
-    # Create dataloader
-    dataloader = DataLoader(
+    return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         sampler=sampler,
-        num_workers=0,  # Set to 0 to avoid multiprocessing issues with lazy loading
+        num_workers=0,
         pin_memory=True
     )
 
-    return dataloader
-
 
 def main():
-    parser = argparse.ArgumentParser(description="HAVOC-7B Phase 1: Pretraining")
-
-    # Data
-    parser.add_argument("--data-dir", type=str, default="data", help="Data directory")
-    parser.add_argument("--tokenizer-path", type=str, default="artifacts/tokenizer", help="Tokenizer path")
-
-    # Model
-    parser.add_argument("--checkpoint-dir", type=str, default="checkpoints/phase1", help="Checkpoint directory")
-
-    # Training
-    parser.add_argument("--batch-size", type=int, default=1, help="Batch size (1 for 24GB GPU, 16-32 for H200)")
-    parser.add_argument("--gradient-accumulation-steps", type=int, default=32, help="Gradient accumulation (32 for 24GB, 4 for H200)")
-    parser.add_argument("--max-steps", type=int, default=100000, help="Max training steps")
-    parser.add_argument("--learning-rate", type=float, default=3e-4, help="Learning rate")
-    parser.add_argument("--max-seq-len", type=int, default=2048, help="Max sequence length (2048 for 24GB, 4096 for H200)")
-
-    # Checkpointing
-    parser.add_argument("--save-every-n-steps", type=int, default=500, help="Save checkpoint every N steps")
-    parser.add_argument("--keep-last-n-checkpoints", type=int, default=5, help="Keep only last N checkpoints")
-
-    # Resume
-    parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint")
+    parser = argparse.ArgumentParser(description="HAVOC-7B Phase 1")
+    parser.add_argument("--data-dir", type=str, default="data")
+    parser.add_argument("--tokenizer-path", type=str, default="artifacts/tokenizer")
+    parser.add_argument("--checkpoint-dir", type=str, default="checkpoints/phase1")
+    parser.add_argument("--batch-size", type=int, default=1)
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=32)
+    parser.add_argument("--max-steps", type=int, default=100000)
+    parser.add_argument("--learning-rate", type=float, default=3e-4)
+    parser.add_argument("--max-seq-len", type=int, default=2048)
+    parser.add_argument("--save-every-n-steps", type=int, default=500)
+    parser.add_argument("--keep-last-n-checkpoints", type=int, default=5)
+    parser.add_argument("--resume", type=str, default=None)
 
     args = parser.parse_args()
 
-    # Initialize distributed training if running with torchrun
+    # --- DISTRIBUTED INIT ---
     use_distributed = "RANK" in os.environ and "WORLD_SIZE" in os.environ
     if use_distributed:
-        # Following Gemini's exact recommendation for multi-GPU initialization
-        # 1. Get the local rank (assigned by torchrun)
         local_rank = int(os.environ["LOCAL_RANK"])
 
-        # 2. FORCE the process to look ONLY at this specific GPU
-        # Fix for torchrun device masking
-        if torch.cuda.device_count() == 1:
+        # --- THE FIX FOR TORCHRUN MASKING ---
+        num_gpus = torch.cuda.device_count()
+        if num_gpus == 1:
+            # torchrun masking active: we only see our own GPU as device 0
             torch.cuda.set_device(0)
         else:
+            # No masking: we map rank to device ID
             torch.cuda.set_device(local_rank)
 
-        # 3. NOW initialize the distributed backend
         dist.init_process_group(backend="nccl")
-
         is_main = (local_rank == 0)
     else:
         is_main = True
 
-    # Set seed
+    # Seed
     torch.manual_seed(42)
-    if use_distributed:
-        # Ensure different seeds for different ranks
-        torch.manual_seed(42 + dist.get_rank())
 
-    # Load tokenizer
     if is_main:
-        print("=" * 70)
-        print("PHASE 1: PRETRAINING HAVOC-7B")
-        if use_distributed:
-            print(f"MULTI-GPU MODE: {dist.get_world_size()} GPUs")
-        print("=" * 70)
-        print("\nLoading tokenizer...")
-    tokenizer = load_tokenizer(args.tokenizer_path)
+        print("="*60)
+        print("PHASE 1: PRETRAINING HAVOC-7B (RELAUNCH)")
+        print("="*60)
 
-    # Create model config
-    print("\nCreating model...")
+    tokenizer = load_tokenizer(args.tokenizer_path)
+    if is_main:
+        print(f"Tokenizer loaded. Vocab: {tokenizer.vocab_size()}")
+
+    # Config & Model
     model_config = Havoc7BConfig()
     model = HavocPrimeModel(model_config, tokenizer=tokenizer)
 
-    print(f"Model parameters: {model.get_num_params_billions():.2f}B")
+    if is_main:
+        print(f"Model Parameters: {model.get_num_params_billions():.2f}B")
 
-    # Create training config
     train_config = OptimizedTrainingConfig(
         model_config=model_config,
         batch_size=args.batch_size,
@@ -260,26 +224,17 @@ def main():
         checkpoint_dir=args.checkpoint_dir,
         save_every_n_steps=args.save_every_n_steps,
         keep_last_n_checkpoints=args.keep_last_n_checkpoints,
-        gradient_checkpointing=True,   # ENABLED - needed even on H200 for 6B model
-        checkpoint_every_n_layers=2,   # Checkpoint every 2 layers (more aggressive)
-        use_flash_attention=True,      # Keep enabled for Hopper architecture
+        gradient_checkpointing=True,
+        use_flash_attention=True,
         use_amp=True,
         amp_dtype="bfloat16"
     )
 
-    # Create dataloaders
-    if is_main:
-        print("\nCreating dataloaders...")
-    train_dataloader = create_dataloader(
-        args.data_dir, tokenizer, args.batch_size, args.max_seq_len, split="train", use_distributed=use_distributed
-    )
+    # Loaders
+    train_dataloader = create_dataloader(args.data_dir, tokenizer, args.batch_size, args.max_seq_len, "train", use_distributed)
+    val_dataloader = create_dataloader(args.data_dir, tokenizer, args.batch_size, args.max_seq_len, "val", use_distributed)
 
-    val_dataloader = create_dataloader(
-        args.data_dir, tokenizer, args.batch_size, args.max_seq_len, split="val", use_distributed=use_distributed
-    )
-
-    # Create trainer
-    print("\nInitializing trainer...")
+    # Trainer
     trainer = OptimizedTrainer(
         model=model,
         train_config=train_config,
@@ -288,22 +243,14 @@ def main():
         tokenizer=tokenizer
     )
 
-    # Resume if specified
     if args.resume:
         trainer.load_checkpoint(args.resume)
 
-    # Train
-    print("\nStarting training...\n")
+    if is_main:
+        print("Starting training...")
+
     trainer.train()
-
-    print("\n" + "=" * 70)
-    print("PHASE 1 COMPLETE")
-    print("=" * 70)
-    print(f"Final checkpoint: {args.checkpoint_dir}/checkpoint_step_{trainer.global_step}")
-    print("\nNext step: Run Phase 2 (SFT)")
-    print(f"  python scripts/phase2_sft_7b.py --checkpoint {args.checkpoint_dir}/checkpoint_step_{trainer.global_step}")
-    print("=" * 70 + "\n")
-
 
 if __name__ == "__main__":
     main()
+EOF
