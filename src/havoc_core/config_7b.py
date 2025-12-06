@@ -7,7 +7,7 @@ Extends base HavocConfig with 7B-specific settings and PRIME integration.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from havoc_core.config import HavocConfig
 from havoc_core.attention import AttentionConfig
@@ -45,14 +45,14 @@ class Havoc7BConfig(HavocConfig):
         dropout=0.0,
         rotary_dim=128,
         rope_theta=10000.0,  # Standard RoPE base frequency
-        bias=False
+        # bias removed here only if AttentionConfig doesn’t support it.
+        # If your AttentionConfig has a bias flag, it will default internally.
     ))
 
     # MLP configuration
     mlp: MLPConfig = field(default_factory=lambda: MLPConfig(
-        hidden_dim=11008,  # ~2.7x expansion for SwiGLU
-        activation="swiglu",
-        bias=False
+        hidden_dim=11008,      # ~2.7x expansion for SwiGLU
+        activation="swiglu"    # NOTE: bias kwarg removed – MLPConfig doesn’t accept it
     ))
 
     # Regularization
