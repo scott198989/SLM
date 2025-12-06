@@ -204,24 +204,15 @@ def main():
     # Initialize distributed training if running with torchrun
     use_distributed = "RANK" in os.environ and "WORLD_SIZE" in os.environ
     if use_distributed:
+        # Following Gemini's exact recommendation for multi-GPU initialization
+        # 1. Get the local rank (assigned by torchrun)
         local_rank = int(os.environ["LOCAL_RANK"])
 
-        # Debug: Print GPU info
-        print(f"[Rank {local_rank}] Initializing on GPU {local_rank}")
-        print(f"[Rank {local_rank}] CUDA available: {torch.cuda.is_available()}")
-        print(f"[Rank {local_rank}] Available GPUs: {torch.cuda.device_count()}")
-
-        # Set CUDA device FIRST for each rank
+        # 2. FORCE the process to look ONLY at this specific GPU
         torch.cuda.set_device(local_rank)
-        print(f"[Rank {local_rank}] Set device to cuda:{local_rank}")
 
-        # Initialize CUDA context
-        _ = torch.zeros(1).cuda(local_rank)
-        print(f"[Rank {local_rank}] CUDA initialized on GPU {local_rank}")
-
-        # Initialize process group
+        # 3. NOW initialize the distributed backend
         dist.init_process_group(backend="nccl")
-        print(f"[Rank {local_rank}] Process group initialized")
 
         is_main = (local_rank == 0)
     else:
