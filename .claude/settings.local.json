@@ -13,7 +13,8 @@
       "Bash(mkdir:*)",
       "Bash(dir \"C:\\Users\\ScottT\\Desktop\\HAVOC_PRETRAIN\")",
       "Bash(dir:*)",
-      "Bash(nvidia-smi --list-gpus)"
+      "Bash(nvidia-smi --list-gpus)",
+      "Bash(ssh:*)"
     ],
     "deny": [],
     "ask": []
