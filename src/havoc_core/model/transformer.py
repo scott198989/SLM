@@ -13,6 +13,7 @@ class HavocModel(nn.Module):
     def __init__(self, config: HavocConfig):
         super().__init__()
         self.config = config
+        self._gradient_checkpointing = False
 
         self.embed_tokens = nn.Embedding(config.vocab_size, config.d_model)
         self.layers = nn.ModuleList([TransformerBlock(config) for _ in range(config.num_layers)])
@@ -54,12 +55,30 @@ class HavocModel(nn.Module):
 
         new_key_values = []
         for layer, past in zip(self.layers, past_key_values):
-            hidden_states, present = layer(
-                hidden_states,
-                attention_mask=attention_mask,
-                past_key_value=past,
-                use_cache=use_cache,
-            )
+            if self._gradient_checkpointing and self.training:
+                # Use gradient checkpointing during training
+                from torch.utils.checkpoint import checkpoint
+
+                def create_custom_forward(module):
+                    def custom_forward(*inputs):
+                        return module(*inputs)
+                    return custom_forward
+
+                hidden_states, present = checkpoint(
+                    create_custom_forward(layer),
+                    hidden_states,
+                    attention_mask,
+                    past,
+                    use_cache,
+                    use_reentrant=False
+                )
+            else:
+                hidden_states, present = layer(
+                    hidden_states,
+                    attention_mask=attention_mask,
+                    past_key_value=past,
+                    use_cache=use_cache,
+                )
             new_key_values.append(present)
 
         hidden_states = self.final_norm(hidden_states)
@@ -130,6 +149,14 @@ class HavocModel(nn.Module):
         additive_mask.masked_fill_(causal_mask, float("-inf"))
 
         return additive_mask
+
+    def gradient_checkpointing_enable(self):
+        """Enable gradient checkpointing for memory efficiency"""
+        self._gradient_checkpointing = True
+
+    def gradient_checkpointing_disable(self):
+        """Disable gradient checkpointing"""
+        self._gradient_checkpointing = False
 
     def _init_weights(self):
         std = self.config.initializer_range

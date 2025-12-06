@@ -87,15 +87,32 @@ class OptimizedTrainer:
         """Enable gradient checkpointing for memory efficiency"""
         print("Enabling gradient checkpointing...")
 
-        # Enable checkpointing on transformer blocks
-        for i, layer in enumerate(self.model.base_model.layers):
-            # Checkpoint every N layers
-            if i % self.config.checkpoint_every_n_layers == 0:
-                layer = torch.utils.checkpoint.checkpoint_sequential(
-                    layer, segments=1, input=None
-                )
+        # Enable PyTorch's gradient checkpointing on the base model
+        if hasattr(self.model.base_model, 'gradient_checkpointing_enable'):
+            self.model.base_model.gradient_checkpointing_enable()
+            print("  Gradient checkpointing enabled via built-in method")
+        else:
+            # Fallback: manually wrap transformer layers
+            from torch.utils.checkpoint import checkpoint
 
-        print(f"  Checkpointing every {self.config.checkpoint_every_n_layers} layers")
+            # Store original forward methods
+            original_forwards = []
+            for layer in self.model.base_model.layers:
+                original_forwards.append(layer.forward)
+
+            # Wrap forward passes with checkpointing
+            for i, layer in enumerate(self.model.base_model.layers):
+                if i % self.config.checkpoint_every_n_layers == 0:
+                    original_forward = layer.forward
+
+                    def create_checkpointed_forward(original_fn):
+                        def checkpointed_forward(*args, **kwargs):
+                            return checkpoint(original_fn, *args, **kwargs, use_reentrant=False)
+                        return checkpointed_forward
+
+                    layer.forward = create_checkpointed_forward(original_forward)
+
+            print(f"  Checkpointing every {self.config.checkpoint_every_n_layers} layers (manual wrapper)")
 
     def _create_optimizer(self) -> torch.optim.Optimizer:
         """Create AdamW optimizer with weight decay"""
