@@ -238,23 +238,60 @@ class OptimizedTrainer:
 
         self.model.train()
 
-        while self.global_step < self.config.max_steps:
-            epoch_loss = self._train_epoch()
+        # Setup graceful shutdown on Ctrl+C
+        import signal
+        interrupted = False
 
-            self.current_epoch += 1
+        def signal_handler(sig, frame):
+            nonlocal interrupted
+            if not interrupted:
+                interrupted = True
+                print("\n\n" + "=" * 70)
+                print("INTERRUPT SIGNAL RECEIVED (Ctrl+C)")
+                print("Saving checkpoint before exiting...")
+                print("=" * 70 + "\n")
 
-            print(f"Epoch {self.current_epoch} completed | Avg Loss: {epoch_loss:.4f}")
+        # Register signal handler (only on main process)
+        if self.is_main_process:
+            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
 
-            # Check if max steps reached
-            if self.global_step >= self.config.max_steps:
-                break
+        try:
+            while self.global_step < self.config.max_steps and not interrupted:
+                epoch_loss = self._train_epoch()
 
-        print("\n" + "=" * 70)
-        print("TRAINING COMPLETE")
-        print("=" * 70)
-        print(f"Total steps: {self.global_step}")
-        print(f"Total epochs: {self.current_epoch}")
-        print("=" * 70 + "\n")
+                self.current_epoch += 1
+
+                if self.is_main_process:
+                    print(f"Epoch {self.current_epoch} completed | Avg Loss: {epoch_loss:.4f}")
+
+                # Check if max steps reached or interrupted
+                if self.global_step >= self.config.max_steps or interrupted:
+                    break
+
+        except KeyboardInterrupt:
+            # Handle Ctrl+C
+            interrupted = True
+            if self.is_main_process:
+                print("\n\n" + "=" * 70)
+                print("TRAINING INTERRUPTED (Ctrl+C)")
+                print("Saving checkpoint before exiting...")
+                print("=" * 70 + "\n")
+
+        finally:
+            # Save checkpoint on interruption (only main process)
+            if interrupted and self.is_main_process:
+                self._save_checkpoint()
+                print("\n✓ Checkpoint saved successfully!")
+                print(f"Resume training with: --resume {self.config.checkpoint_dir}/checkpoint_step_{self.global_step}\n")
+
+        if self.is_main_process:
+            print("\n" + "=" * 70)
+            print("TRAINING COMPLETE" if not interrupted else "TRAINING INTERRUPTED")
+            print("=" * 70)
+            print(f"Total steps: {self.global_step}")
+            print(f"Total epochs: {self.current_epoch}")
+            print("=" * 70 + "\n")
 
     def _train_epoch(self) -> float:
         """Train for one epoch"""

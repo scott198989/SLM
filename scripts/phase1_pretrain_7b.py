@@ -196,6 +196,10 @@ def main():
     parser.add_argument("--learning-rate", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--max-seq-len", type=int, default=2048, help="Max sequence length (2048 for 24GB, 4096 for H200)")
 
+    # Checkpointing
+    parser.add_argument("--save-every-n-steps", type=int, default=500, help="Save checkpoint every N steps")
+    parser.add_argument("--keep-last-n-checkpoints", type=int, default=5, help="Keep only last N checkpoints")
+
     # Resume
     parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint")
 
@@ -250,6 +254,8 @@ def main():
         learning_rate=args.learning_rate,
         max_steps=args.max_steps,
         checkpoint_dir=args.checkpoint_dir,
+        save_every_n_steps=args.save_every_n_steps,
+        keep_last_n_checkpoints=args.keep_last_n_checkpoints,
         gradient_checkpointing=True,   # ENABLED - needed even on H200 for 6B model
         checkpoint_every_n_layers=2,   # Checkpoint every 2 layers (more aggressive)
         use_flash_attention=True,      # Keep enabled for Hopper architecture

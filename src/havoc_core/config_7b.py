@@ -253,8 +253,8 @@ class OptimizedTrainingConfig:
 
     # Checkpointing
     checkpoint_dir: str = "checkpoints/havoc_7b"
-    save_every_n_steps: int = 5000
-    keep_last_n_checkpoints: int = 3
+    save_every_n_steps: int = 500  # Save every 500 steps - much safer!
+    keep_last_n_checkpoints: int = 5  # Keep more checkpoints for safety
     resume_from_checkpoint: Optional[str] = None
 
     # Validation
