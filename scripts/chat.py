@@ -7,7 +7,7 @@ from transformers import PreTrainedTokenizerFast
 # ================================================
 # CONFIGURE THESE PATHS
 # ================================================
-CHECKPOINT_DIR = "/workspace/SLM/checkpoints/phase1_h200_safe/checkpoint_step_250"
+CHECKPOINT = "/workspace/SLM/checkpoints/havoc_phase0_complete/checkpoint_interrupted"
 TOKENIZER_PATH = "/workspace/SLM/artifacts/tokenizer"
 
 # ================================================
