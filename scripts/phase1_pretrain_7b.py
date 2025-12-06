@@ -7,8 +7,10 @@ Usage:
     python scripts/phase1_pretrain_7b.py --data-dir data --checkpoint-dir checkpoints/phase1
 
 Expected training time:
-    - H200 (141GB): ~18 hours (recommended: batch_size=16, grad_accum=4, seq_len=4096)
+    - H200 (141GB): ~18-24 hours (recommended: batch_size=4, grad_accum=16, seq_len=2048)
     - RTX 5090 (24GB): ~1000 GPU-hours (~42 days)
+
+NOTE: Gradient checkpointing is REQUIRED even on H200 for this 6B model.
 """
 
 import argparse
@@ -193,7 +195,8 @@ def main():
         learning_rate=args.learning_rate,
         max_steps=args.max_steps,
         checkpoint_dir=args.checkpoint_dir,
-        gradient_checkpointing=False,  # Disabled for H200 (141GB VRAM) - prioritize speed
+        gradient_checkpointing=True,   # ENABLED - needed even on H200 for 6B model
+        checkpoint_every_n_layers=2,   # Checkpoint every 2 layers (more aggressive)
         use_flash_attention=True,      # Keep enabled for Hopper architecture
         use_amp=True,
         amp_dtype="bfloat16"

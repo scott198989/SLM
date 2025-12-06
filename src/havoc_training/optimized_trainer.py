@@ -233,7 +233,7 @@ class OptimizedTrainer:
                 print(f"[DEBUG] First batch loaded. Starting forward pass...")
 
             # Forward pass with mixed precision
-            with autocast(enabled=self.config.use_amp, dtype=torch.bfloat16 if self.config.amp_dtype == "bfloat16" else torch.float16):
+            with torch.amp.autocast('cuda', enabled=self.config.use_amp, dtype=torch.bfloat16 if self.config.amp_dtype == "bfloat16" else torch.float16):
                 logits, _ = self.model(input_ids)
 
                 # Compute loss
