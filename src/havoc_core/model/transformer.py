@@ -57,21 +57,22 @@ class HavocModel(nn.Module):
         for layer, past in zip(self.layers, past_key_values):
             if self._gradient_checkpointing and self.training:
                 # Use gradient checkpointing during training
+                # Note: we disable use_cache during checkpointing since cache tensors can't be checkpointed
                 from torch.utils.checkpoint import checkpoint
 
-                def create_custom_forward(module):
-                    def custom_forward(*inputs):
-                        return module(*inputs)
+                def create_custom_forward(module, past_kv):
+                    def custom_forward(h, mask):
+                        out, _ = module(h, attention_mask=mask, past_key_value=past_kv, use_cache=False)
+                        return out
                     return custom_forward
 
-                hidden_states, present = checkpoint(
-                    create_custom_forward(layer),
+                hidden_states = checkpoint(
+                    create_custom_forward(layer, past),
                     hidden_states,
                     attention_mask,
-                    past,
-                    use_cache,
                     use_reentrant=False
                 )
+                present = None  # No KV cache when checkpointing
             else:
                 hidden_states, present = layer(
                     hidden_states,

@@ -64,7 +64,7 @@ class OptimizedTrainer:
 
         # Mixed precision scaler
         if train_config.use_amp:
-            self.scaler = GradScaler()
+            self.scaler = torch.amp.GradScaler('cuda')
         else:
             self.scaler = None
 
