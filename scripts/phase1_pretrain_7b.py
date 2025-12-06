@@ -213,7 +213,11 @@ def main():
         local_rank = int(os.environ["LOCAL_RANK"])
 
         # 2. FORCE the process to look ONLY at this specific GPU
-        torch.cuda.set_device(local_rank)
+        # Fix for torchrun device masking
+        if torch.cuda.device_count() == 1:
+            torch.cuda.set_device(0)
+        else:
+            torch.cuda.set_device(local_rank)
 
         # 3. NOW initialize the distributed backend
         dist.init_process_group(backend="nccl")
