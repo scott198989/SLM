@@ -23,31 +23,64 @@ from havoc_training.optimized_trainer import OptimizedTrainer
 
 
 class TextDataset(Dataset):
-    """Simple text dataset for pretraining"""
+    """Lazy-loading text dataset for pretraining with LRU cache"""
 
-    def __init__(self, file_paths: list, tokenizer, max_seq_len: int = 2048):
+    def __init__(self, file_paths: list, tokenizer, max_seq_len: int = 2048, samples_per_epoch: int = 10000):
+        import random
         self.file_paths = file_paths
         self.tokenizer = tokenizer
         self.max_seq_len = max_seq_len
+        self.samples_per_epoch = samples_per_epoch
+        self.cache = {}  # Simple cache for recently accessed files
+        self.max_cache_size = 20  # Cache up to 20 files
 
-        # Load all data (for small datasets)
-        # For large datasets, use streaming
-        self.samples = []
-        for file_path in file_paths:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                text = f.read()
-                # Split into chunks
-                tokens = tokenizer.encode(text)
-                for i in range(0, len(tokens), max_seq_len):
-                    chunk = tokens[i:i + max_seq_len]
-                    if len(chunk) == max_seq_len:  # Only full sequences
-                        self.samples.append(chunk)
+        print(f"Dataset initialized with {len(file_paths)} files")
+        print(f"Samples per epoch: {samples_per_epoch:,}")
+        print(f"Max sequence length: {max_seq_len}\n")
 
     def __len__(self):
-        return len(self.samples)
+        return self.samples_per_epoch
+
+    def _load_and_tokenize(self, file_path):
+        """Load and tokenize file with caching"""
+        file_str = str(file_path)
+
+        # Check cache
+        if file_str in self.cache:
+            return self.cache[file_str]
+
+        # Read and tokenize
+        with open(file_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+        tokens = self.tokenizer.encode(text)
+
+        # Add to cache (LRU eviction)
+        if len(self.cache) >= self.max_cache_size:
+            # Remove oldest entry
+            self.cache.pop(next(iter(self.cache)))
+
+        self.cache[file_str] = tokens
+        return tokens
 
     def __getitem__(self, idx):
-        tokens = self.samples[idx]
+        import random
+
+        # Pick a random file
+        file_path = random.choice(self.file_paths)
+
+        # Load and tokenize (with caching)
+        tokens = self._load_and_tokenize(file_path)
+
+        # Sample a random chunk
+        if len(tokens) < self.max_seq_len:
+            # Pad short sequences
+            tokens = tokens + [0] * (self.max_seq_len - len(tokens))
+        elif len(tokens) > self.max_seq_len:
+            # Take random chunk from long sequences
+            max_start = len(tokens) - self.max_seq_len
+            start = random.randint(0, max_start)
+            tokens = tokens[start:start + self.max_seq_len]
+
         return {
             "input_ids": torch.tensor(tokens[:-1], dtype=torch.long),
             "labels": torch.tensor(tokens[1:], dtype=torch.long)
@@ -90,15 +123,16 @@ def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: in
     print(f"\nTotal files: {len(file_paths)}")
 
     # Create dataset
-    dataset = TextDataset(file_paths, tokenizer, max_seq_len)
-    print(f"Total samples: {len(dataset):,}\n")
+    # Use 10k samples per epoch for faster iteration with large datasets
+    samples_per_epoch = 10000 if split == "train" else 1000
+    dataset = TextDataset(file_paths, tokenizer, max_seq_len, samples_per_epoch=samples_per_epoch)
 
     # Create dataloader
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=(split == "train"),
-        num_workers=2,
+        num_workers=0,  # Set to 0 to avoid multiprocessing issues with lazy loading
         pin_memory=True
     )
 
