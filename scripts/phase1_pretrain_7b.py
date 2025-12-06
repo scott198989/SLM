@@ -22,65 +22,70 @@ from havoc_core.model.prime_model import HavocPrimeModel
 from havoc_training.optimized_trainer import OptimizedTrainer
 
 
-class PreTokenizedDataset(Dataset):
-    """Fast dataset using pre-tokenized .pt files"""
+class StreamingTextDataset(Dataset):
+    """Memory-mapped streaming dataset - no pre-tokenization needed!"""
 
-    def __init__(self, file_paths: list, max_seq_len: int = 2048, samples_per_epoch: int = 10000):
+    def __init__(self, file_paths: list, tokenizer, max_seq_len: int = 2048, samples_per_epoch: int = 10000):
         import random
+        import mmap
+
         self.file_paths = file_paths
+        self.tokenizer = tokenizer
         self.max_seq_len = max_seq_len
         self.samples_per_epoch = samples_per_epoch
-        self.cache = {}  # Cache for loaded tensors
-        self.max_cache_size = 30  # Cache more files since loading is cheap
 
-        print(f"Dataset initialized with {len(file_paths)} pre-tokenized files")
+        # Build file size index for weighted sampling
+        print(f"Indexing {len(file_paths)} files...")
+        self.file_sizes = []
+        total_size = 0
+        for fp in file_paths:
+            size = fp.stat().st_size
+            self.file_sizes.append(size)
+            total_size += size
+
+        # Normalize to probabilities
+        self.file_probs = [s / total_size for s in self.file_sizes]
+
+        print(f"Dataset initialized with {len(file_paths)} files")
+        print(f"Total data size: {total_size / 1e9:.2f} GB")
         print(f"Samples per epoch: {samples_per_epoch:,}")
         print(f"Max sequence length: {max_seq_len}\n")
 
     def __len__(self):
         return self.samples_per_epoch
 
-    def _load_tokens(self, file_path):
-        """Load pre-tokenized file with caching"""
-        file_str = str(file_path)
-
-        # Check cache
-        if file_str in self.cache:
-            return self.cache[file_str]
-
-        # Load pre-tokenized tensor (FAST!)
-        tokens = torch.load(file_path, map_location='cpu')
-
-        # Convert to list for easier manipulation
-        if isinstance(tokens, torch.Tensor):
-            tokens = tokens.tolist()
-
-        # Add to cache (LRU eviction)
-        if len(self.cache) >= self.max_cache_size:
-            # Remove oldest entry
-            self.cache.pop(next(iter(self.cache)))
-
-        self.cache[file_str] = tokens
-        return tokens
-
     def __getitem__(self, idx):
         import random
 
-        # Pick a random file
-        file_path = random.choice(self.file_paths)
+        # Weighted random file selection (larger files sampled more often)
+        file_path = random.choices(self.file_paths, weights=self.file_probs, k=1)[0]
 
-        # Load pre-tokenized data (FAST - no encoding needed!)
-        tokens = self._load_tokens(file_path)
+        # Memory-map the file for fast random access
+        with open(file_path, 'r', encoding='utf-8') as f:
+            # Read a random chunk from the file
+            f.seek(0, 2)  # Seek to end
+            file_size = f.tell()
 
-        # Sample a random chunk
+            # Choose random starting position (leave room for max_seq_len * 6 chars)
+            max_chars = self.max_seq_len * 6  # Rough estimate: 6 chars per token
+            if file_size > max_chars:
+                start_pos = random.randint(0, file_size - max_chars)
+                f.seek(start_pos)
+                # Read from there
+                chunk_text = f.read(max_chars)
+            else:
+                # Small file - read all
+                f.seek(0)
+                chunk_text = f.read()
+
+        # Tokenize the chunk
+        tokens = self.tokenizer.encode(chunk_text)
+
+        # Trim or pad to exact length
         if len(tokens) < self.max_seq_len:
-            # Pad short sequences
             tokens = tokens + [0] * (self.max_seq_len - len(tokens))
-        elif len(tokens) > self.max_seq_len:
-            # Take random chunk from long sequences
-            max_start = len(tokens) - self.max_seq_len
-            start = random.randint(0, max_start)
-            tokens = tokens[start:start + self.max_seq_len]
+        else:
+            tokens = tokens[:self.max_seq_len]
 
         return {
             "input_ids": torch.tensor(tokens[:-1], dtype=torch.long),
@@ -105,37 +110,28 @@ def load_tokenizer(tokenizer_path: str):
 
 
 def create_dataloader(data_dir: str, tokenizer, batch_size: int, max_seq_len: int, split: str = "train"):
-    """Create dataloader for pretraining"""
+    """Create dataloader for pretraining with streaming"""
 
     data_path = Path(data_dir)
 
-    # Collect PRE-TOKENIZED files (.pt)
+    # Collect text files
     file_paths = []
     for domain in ["math", "stats", "engineering", "general", "code"]:
         domain_path = data_path / domain
         if domain_path.exists():
-            # Look for .pt files first (pre-tokenized)
-            pt_files = list(domain_path.glob("*.pt"))
-            if pt_files:
-                file_paths.extend(pt_files)
-                print(f"Found {len(pt_files)} pre-tokenized files in {domain}/")
-            else:
-                # Fall back to .txt files (will be slow!)
-                txt_files = list(domain_path.glob("*.txt"))
-                if txt_files:
-                    print(f"[WARNING] Found {len(txt_files)} .txt files in {domain}/ - these should be pre-tokenized!")
-                    print(f"[WARNING] Run: python scripts/pretokenize_data.py --data-dir {domain_path} --tokenizer-path <tokenizer>")
-                    raise ValueError(f"Please pre-tokenize data in {domain_path} before training!")
+            txt_files = list(domain_path.glob("*.txt"))
+            file_paths.extend(txt_files)
+            print(f"Found {len(txt_files)} files in {domain}/")
 
     if not file_paths:
-        raise ValueError(f"No pre-tokenized (.pt) data files found in {data_dir}")
+        raise ValueError(f"No data files found in {data_dir}")
 
-    print(f"\nTotal pre-tokenized files: {len(file_paths)}")
+    print(f"\nTotal files: {len(file_paths)}")
 
-    # Create dataset
-    # Use 10k samples per epoch for faster iteration with large datasets
+    # Create streaming dataset (no pre-tokenization needed!)
+    # Use 10k samples per epoch for faster iteration
     samples_per_epoch = 10000 if split == "train" else 1000
-    dataset = PreTokenizedDataset(file_paths, max_seq_len, samples_per_epoch=samples_per_epoch)
+    dataset = StreamingTextDataset(file_paths, tokenizer, max_seq_len, samples_per_epoch=samples_per_epoch)
 
     # Create dataloader
     dataloader = DataLoader(
