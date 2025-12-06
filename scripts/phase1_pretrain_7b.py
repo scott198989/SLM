@@ -64,12 +64,19 @@ class TextDataset(Dataset):
 
     def __getitem__(self, idx):
         import random
+        import time
 
         # Pick a random file
         file_path = random.choice(self.file_paths)
 
         # Load and tokenize (with caching)
+        start_time = time.time()
         tokens = self._load_and_tokenize(file_path)
+        load_time = time.time() - start_time
+
+        # Log slow loads (>5 seconds)
+        if load_time > 5:
+            print(f"[WARNING] Slow file load: {file_path.name} took {load_time:.1f}s, {len(tokens):,} tokens")
 
         # Sample a random chunk
         if len(tokens) < self.max_seq_len:

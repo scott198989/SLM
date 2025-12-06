@@ -222,9 +222,15 @@ class OptimizedTrainer:
         self.optimizer.zero_grad()
 
         for batch_idx, batch in enumerate(self.train_dataloader):
+            if batch_idx == 0:
+                print(f"[DEBUG] Loading first batch (batch_size={self.config.batch_size})...")
+
             # Move batch to device
             input_ids = batch["input_ids"].to(self.device)
             labels = batch.get("labels", input_ids).to(self.device)
+
+            if batch_idx == 0:
+                print(f"[DEBUG] First batch loaded. Starting forward pass...")
 
             # Forward pass with mixed precision
             with autocast(enabled=self.config.use_amp, dtype=torch.bfloat16 if self.config.amp_dtype == "bfloat16" else torch.float16):
