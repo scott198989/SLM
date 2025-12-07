@@ -198,10 +198,10 @@ class TrainingConfig:
     use_amp: bool = True
     amp_dtype: str = "bfloat16"  # Prefer bf16 on H100/H200/A100
 
-    # Checkpointing
+    # Checkpointing (300GB volume - rotation required)
     checkpoint_dir: str = "/workspace/SLM/checkpoints"
-    save_every_n_steps: int = 500  # Save frequently for safety
-    keep_last_n_checkpoints: int = 5
+    save_every_n_steps: int = 250  # Save every 250 steps
+    keep_last_n_checkpoints: int = 4  # Keep last 4 only (space constraint)
     resume_from_checkpoint: Optional[str] = None
 
     # Validation

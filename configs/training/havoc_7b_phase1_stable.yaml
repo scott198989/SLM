@@ -5,10 +5,14 @@
 # CANONICAL SETTINGS for 6-7B from-scratch pretraining.
 # Conservative hyperparameters for stability.
 #
-# Requirements:
-#   - H200/H100/A100 80GB recommended
-#   - Tokenizer trained with scripts/train_tokenizer_70k.py
-#   - Pretrain corpus under /workspace/data/pretrain/
+# RUNPOD ENVIRONMENT:
+#   - Hardware: AMD MI300X (ROCm) with bfloat16 AMP
+#   - Repo root: /workspace/SLM
+#   - Dataset root: /workspace/data
+#   - Pretrain corpus: /workspace/data/pretrain
+#   - Tokenizer: /workspace/SLM/artifacts/tokenizer
+#   - Checkpoints: /workspace/SLM/checkpoints/havoc_7b_phase1
+#   - Volume: 300GB (checkpoint rotation required)
 #
 # Usage:
 #   python scripts/train.py --config configs/training/havoc_7b_phase1_stable.yaml
@@ -97,16 +101,16 @@ lr_scheduler_type: cosine               # Cosine annealing
 min_learning_rate: 1.5e-5               # 10% of peak LR
 warmup_steps: 2500                      # Long warmup for stability
 
-# Mixed precision
+# Mixed precision (AMD MI300X ROCm compatible)
 use_amp: true
-amp_dtype: bfloat16                     # bf16 on H100/H200/A100
+amp_dtype: bfloat16                     # REQUIRED for MI300X ROCm
 
 # -----------------------------------------------------------------------------
-# CHECKPOINTING
+# CHECKPOINTING (300GB volume - rotation required)
 # -----------------------------------------------------------------------------
 checkpoint_dir: /workspace/SLM/checkpoints/havoc_7b_phase1
-save_every_n_steps: 500                 # Save frequently for safety
-keep_last_n_checkpoints: 5
+save_every_n_steps: 250                 # Save every 250 steps
+keep_last_n_checkpoints: 4              # Keep last 4 only (space constraint)
 resume_from_checkpoint: null            # Set to checkpoint path to resume
 
 # -----------------------------------------------------------------------------

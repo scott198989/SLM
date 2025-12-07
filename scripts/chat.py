@@ -22,9 +22,12 @@ import torch
 import torch.nn.functional as F
 
 # =============================================================================
-# CONFIGURATION
+# CONFIGURATION (RunPod: AMD MI300X ROCm)
 # =============================================================================
-DEFAULT_CHECKPOINT = "/workspace/SLM/checkpoints/havoc_7b_phase1/checkpoint_step_latest"
+# Repo root: /workspace/SLM
+# Dataset root: /workspace/data
+# Checkpoints: /workspace/SLM/checkpoints/havoc_7b_phase1
+DEFAULT_CHECKPOINT = "/workspace/SLM/checkpoints/havoc_7b_phase1"
 DEFAULT_TOKENIZER = "/workspace/SLM/artifacts/tokenizer"
 
 # Generation defaults
@@ -76,9 +79,38 @@ def load_tokenizer(tokenizer_path: str):
 # =============================================================================
 # MODEL LOADING
 # =============================================================================
+def find_latest_checkpoint(checkpoint_dir: str) -> Path:
+    """Find the latest checkpoint in a directory."""
+    checkpoint_dir = Path(checkpoint_dir)
+
+    # If it's already a specific checkpoint (has config.json), return it
+    if (checkpoint_dir / "config.json").exists():
+        return checkpoint_dir
+
+    # Otherwise, find the latest checkpoint_step_N
+    checkpoints = []
+    for d in checkpoint_dir.iterdir():
+        if d.is_dir() and d.name.startswith("checkpoint_step_"):
+            try:
+                step = int(d.name.split("_")[-1])
+                checkpoints.append((step, d))
+            except ValueError:
+                continue
+
+    if not checkpoints:
+        raise FileNotFoundError(f"No checkpoints found in {checkpoint_dir}")
+
+    # Return the one with highest step number
+    checkpoints.sort(key=lambda x: x[0], reverse=True)
+    latest = checkpoints[0][1]
+    print(f"Found latest checkpoint: {latest.name}")
+    return latest
+
+
 def load_model(checkpoint_path: str, device: str = "cuda"):
     """Load model from checkpoint, auto-detecting architecture."""
-    checkpoint_dir = Path(checkpoint_path)
+    # Find latest checkpoint if directory given
+    checkpoint_dir = find_latest_checkpoint(checkpoint_path)
     config_path = checkpoint_dir / "config.json"
     model_path = checkpoint_dir / "model.pt"
 

@@ -7,12 +7,19 @@ CANONICAL TOKENIZER CONFIGURATION:
 - model_type: BPE
 - pad_id: 0, bos_id: 1, eos_id: 2, unk_id: 3
 
+RUNPOD ENVIRONMENT:
+- Hardware: AMD MI300X (ROCm)
+- Repo root: /workspace/SLM
+- Dataset root: /workspace/data
+- Pretrain corpus: /workspace/data/pretrain
+- Tokenizer output: /workspace/SLM/artifacts/tokenizer
+
 This script trains a SentencePiece BPE tokenizer that matches the model's
 embedding dimensions. Run this BEFORE training to ensure tokenizer/model compatibility.
 
-Usage (on H200 container):
+Usage (on RunPod MI300X):
     python scripts/train_tokenizer_70k.py \
-        --corpus /workspace/data/pretrain_corpus \
+        --corpus /workspace/data/pretrain \
         --output /workspace/SLM/artifacts/tokenizer
 
 The corpus can be:
