@@ -1,41 +1,49 @@
 # =============================================================================
-# HAVOC Default Training Configuration
+# HAVOC-7B Phase 1 Stable Training Configuration
 # =============================================================================
 #
-# CANONICAL SETTINGS - All vocab_size, token IDs, and hyperparameters
-# are aligned with the tokenizer and model configs.
+# CANONICAL SETTINGS for 6-7B from-scratch pretraining.
+# Conservative hyperparameters for stability.
 #
-# This config is suitable for both 2B and 7B models with minor adjustments.
+# Requirements:
+#   - H200/H100/A100 80GB recommended
+#   - Tokenizer trained with scripts/train_tokenizer_70k.py
+#   - Pretrain corpus under /workspace/data/pretrain/
+#
+# Usage:
+#   python scripts/train.py --config configs/training/havoc_7b_phase1_stable.yaml
 #
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# MODEL ARCHITECTURE (2B default, override for 7B)
+# MODEL ARCHITECTURE
 # -----------------------------------------------------------------------------
 model:
   vocab_size: 70000           # CANONICAL: Must match tokenizer
-  d_model: 2560
-  num_layers: 20
-  max_seq_len: 2048
+  d_model: 4096
+  num_layers: 32
+  max_seq_len: 4096
 
   attention:
     num_heads: 32
-    head_dim: null            # Will be d_model / num_heads
-    num_kv_heads: 4           # GQA
+    num_kv_heads: 8           # GQA ratio 4:1
+    head_dim: 128             # d_model / num_heads
     dropout: 0.0
-    rotary_dim: null
+    rotary_dim: 128
     rope_theta: 10000.0
+    bias: false
 
   mlp:
-    hidden_dim: 10240
-    activation: gelu
+    hidden_dim: 11008         # ~2.7x expansion for SwiGLU
+    activation: swiglu
+    dropout: 0.0
 
   # Regularization
   dropout: 0.0
   layer_norm_eps: 1.0e-5
   initializer_range: 0.02
 
-  # Token IDs - MUST match tokenizer (pad=0, bos=1, eos=2, unk=3)
+  # Token IDs - MUST match tokenizer
   pad_token_id: 0
   bos_token_id: 1
   eos_token_id: 2
@@ -47,8 +55,8 @@ data:
   domain_ratio: 0.6
   general_ratio: 0.3
   dialog_ratio: 0.1
-  max_sequence_length: 2048
-  samples_per_epoch: 1024
+  max_sequence_length: 4096
+  samples_per_epoch: 10000
   pack_sequences: true
   add_bos: true
   add_eos: true
@@ -56,25 +64,25 @@ data:
 tokenizer_path: /workspace/SLM/artifacts/tokenizer
 
 data_sources:
-  - name: pretrain
+  - name: pretrain_corpus
     type: text_directory
     paths:
       - /workspace/data/pretrain
     weight: 1.0
 
 # -----------------------------------------------------------------------------
-# TRAINING HYPERPARAMETERS - STABLE DEFAULTS
+# TRAINING HYPERPARAMETERS - STABLE PHASE 1 DEFAULTS
 # -----------------------------------------------------------------------------
 
 # Batch configuration
-batch_size: 1
+batch_size: 1                           # Per-device batch size
 gradient_accumulation_steps: 8          # Effective batch = 8
 
 # Training duration
-max_epochs: null                        # Use max_steps
-max_steps: 100000
+max_epochs: null                        # Use max_steps for pretraining
+max_steps: 100000                       # ~100k steps
 
-# Optimizer - Conservative for from-scratch training
+# Optimizer - Conservative for 6-7B from-scratch
 learning_rate: 1.5e-4                   # Conservative peak LR
 weight_decay: 0.1                       # Standard
 max_grad_norm: 1.0                      # Gradient clipping
@@ -91,30 +99,30 @@ warmup_steps: 2500                      # Long warmup for stability
 
 # Mixed precision
 use_amp: true
-amp_dtype: bfloat16                     # bf16 preferred on modern GPUs
+amp_dtype: bfloat16                     # bf16 on H100/H200/A100
 
 # -----------------------------------------------------------------------------
 # CHECKPOINTING
 # -----------------------------------------------------------------------------
-checkpoint_dir: /workspace/SLM/checkpoints
-save_every_n_steps: 500                 # Save frequently
+checkpoint_dir: /workspace/SLM/checkpoints/havoc_7b_phase1
+save_every_n_steps: 500                 # Save frequently for safety
 keep_last_n_checkpoints: 5
-resume_from_checkpoint: null
+resume_from_checkpoint: null            # Set to checkpoint path to resume
 
 # -----------------------------------------------------------------------------
 # VALIDATION
 # -----------------------------------------------------------------------------
 eval_every_n_steps: 500
 eval_samples: 100
-log_eval_examples: 1
-example_prompt_length: 64
-example_max_new_tokens: 32
+log_eval_examples: 2
+example_prompt_length: 128
+example_max_new_tokens: 64
 
 # -----------------------------------------------------------------------------
 # LOGGING
 # -----------------------------------------------------------------------------
 log_every_n_steps: 10
-log_dir: /workspace/SLM/logs
+log_dir: /workspace/SLM/logs/havoc_7b_phase1
 log_json_metrics: true
 use_tensorboard: false
 

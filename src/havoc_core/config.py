@@ -55,7 +55,12 @@ class HavocConfig:
 
 @dataclass
 class TokenizerTrainingConfig:
-    vocab_size: int = 75000
+    """Configuration for SentencePiece tokenizer training.
+
+    CANONICAL VOCAB SIZE: 70000
+    This must match HavocConfig.vocab_size and Havoc7BConfig.vocab_size.
+    """
+    vocab_size: int = 70000  # CANONICAL: Must match model configs
     model_type: str = "bpe"
     special_tokens: List[str] = field(
         default_factory=lambda: [
@@ -77,6 +82,11 @@ class TokenizerTrainingConfig:
     character_coverage: float = 0.9995
     max_sentence_length: int = 2048
     normalize_text: bool = True
+    # Token IDs - MUST match SentencePiece training and model configs
+    pad_id: int = 0
+    bos_id: int = 1
+    eos_id: int = 2
+    unk_id: int = 3
 
 
 @dataclass
@@ -151,34 +161,47 @@ class InferenceConfig:
 
 @dataclass
 class TrainingConfig:
+    """Training configuration with stable defaults for 6-7B from-scratch pretraining.
+
+    STABLE PHASE 1 DEFAULTS:
+    - Conservative LR (1.5e-4) with long warmup (2500 steps)
+    - Cosine decay to 10% of peak (1.5e-5)
+    - Standard weight decay (0.1)
+    - Gradient clipping at 1.0
+    """
     # Model and data
     model_config: Optional[HavocConfig] = None
     data_config: Optional[DataMixtureConfig] = None
     tokenizer_path: Optional[str] = "/workspace/SLM/artifacts/tokenizer"
     data_sources: Optional[list] = None
 
-    # Training hyperparameters
+    # Training hyperparameters - STABLE PHASE 1 DEFAULTS
     batch_size: int = 1
-    gradient_accumulation_steps: int = 4
-    max_epochs: Optional[int] = 10
-    max_steps: Optional[int] = 8000
-    learning_rate: float = 3e-4
-    weight_decay: float = 0.1
-    warmup_steps: int = 2000
+    gradient_accumulation_steps: int = 8  # Effective batch = 8
+    max_epochs: Optional[int] = None  # Use max_steps for pretraining
+    max_steps: Optional[int] = 100000
+    learning_rate: float = 1.5e-4  # Conservative for 6B from-scratch
+    weight_decay: float = 0.1  # Standard
+    warmup_steps: int = 2500  # Long warmup for stability
     max_grad_norm: float = 1.0
+
+    # Optimizer betas and eps (used by Trainer)
+    adam_beta1: float = 0.9
+    adam_beta2: float = 0.95
+    adam_epsilon: float = 1e-8
 
     # Learning rate schedule
     lr_scheduler_type: str = "cosine"  # "cosine", "linear", "constant"
-    min_learning_rate: float = 3e-5
+    min_learning_rate: float = 1.5e-5  # 10% of peak LR
 
     # Mixed precision
     use_amp: bool = True
-    amp_dtype: str = "float16"  # "bfloat16" or "float16"
+    amp_dtype: str = "bfloat16"  # Prefer bf16 on H100/H200/A100
 
     # Checkpointing
     checkpoint_dir: str = "/workspace/SLM/checkpoints"
-    save_every_n_steps: int = 1000
-    keep_last_n_checkpoints: int = 3
+    save_every_n_steps: int = 500  # Save frequently for safety
+    keep_last_n_checkpoints: int = 5
     resume_from_checkpoint: Optional[str] = None
 
     # Validation

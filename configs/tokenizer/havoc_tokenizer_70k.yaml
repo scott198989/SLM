@@ -1,19 +1,84 @@
-vocab_size: 70000
-model_type: bpe
-character_coverage: 1.0
-max_sentence_length: 4192
+# =============================================================================
+# HAVOC Tokenizer Configuration (70k vocab)
+# =============================================================================
+#
+# CANONICAL TOKENIZER SETTINGS
+#
+# vocab_size: 70000 (MUST match model configs)
+# Token IDs: pad=0, bos=1, eos=2, unk=3
+#
+# Usage:
+#   python scripts/train_tokenizer_70k.py --config configs/tokenizer/havoc_tokenizer_70k.yaml
+#
+# =============================================================================
 
+# Core settings
+vocab_size: 70000                       # CANONICAL: Must match model configs
+model_type: bpe
+character_coverage: 0.9995
+max_sentence_length: 4096
+
+# Text normalization
 normalize_text: true
 
+# Token IDs - CANONICAL (must match model and SentencePiece training)
+pad_id: 0
+bos_id: 1
+eos_id: 2
+unk_id: 3
+
+# Special tokens for HAVOC domain
 special_tokens:
-  - "<cls>"
-  - "<sep>"
-  - "<mask>"
-  - "<math>"
-  - "<chem>"
-  - "<eng>"
+  # Core tokens (handled by SentencePiece)
+  - "<pad>"
+  - "<bos>"
+  - "<eos>"
+  - "<unk>"
+  # SRS reasoning tokens
+  - "<SRS_MODE>"
+  - "<SRS_GROUND>"
+  - "<SRS_PLAN>"
+  - "<SRS_EXECUTE>"
+  - "<SRS_ARGUE>"
+  - "<SRS_ARBITER>"
+  - "<SRS_AUDIT>"
+  - "<SRS_ANSWER>"
+  # Tool tokens
+  - "<tool>"
+  - "</tool>"
+  - "<ref>"
+  - "</ref>"
+  - "<plan>"
+  - "</plan>"
+  - "<exec>"
+  - "</exec>"
+  - "<argue>"
+  - "</argue>"
+  - "<arbiter>"
+  - "</arbiter>"
+  - "<audit>"
+  - "</audit>"
+  # Reasoning tokens
+  - "<reason>"
+  - "</reason>"
+  - "<advocate>"
+  - "</advocate>"
+  - "<attack>"
+  - "</attack>"
+  - "<pragmatist>"
+  - "</pragmatist>"
+  # DSL tokens
+  - "<DSL_BEGIN>"
+  - "<DSL_END>"
+  - "<TOOL_MATH>"
+  - "<TOOL_STATS>"
+  # Engineering symbols
+  - "<ENG_SYMBOL_START>"
+  - "<ENG_SYMBOL_END>"
 
+# Input corpus paths (relative to repo root or absolute)
 input_files:
-  - sft_data/tokenizer_corpus.txt
+  - /workspace/data/pretrain
 
-output_dir: artifacts/tokenizer
+# Output directory for tokenizer artifacts
+output_dir: /workspace/SLM/artifacts/tokenizer

@@ -160,11 +160,15 @@ class Trainer:
             },
         ]
         self.total_training_steps = self._estimate_total_steps()
+        # Use betas and eps from config (with fallbacks for backward compatibility)
+        beta1 = getattr(self.config, "adam_beta1", 0.9)
+        beta2 = getattr(self.config, "adam_beta2", 0.95)
+        eps = getattr(self.config, "adam_epsilon", 1e-8)
         self.optimizer = AdamW(
             optimizer_grouped_parameters,
             lr=self.config.learning_rate,
-            betas=(0.9, 0.95),
-            eps=1e-8,
+            betas=(beta1, beta2),
+            eps=eps,
         )
 
         # Learning rate scheduler
