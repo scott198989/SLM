@@ -88,7 +88,8 @@ class HavocModel(nn.Module):
         return logits, (new_key_values if use_cache else None)
 
     # ---------------------------------------------------------
-    # FIXED generate() — real sampling + dot penalty
+    # CLAUDE_FIX: Removed buggy "dot penalty" that zeroed out period token.
+    # This was causing garbled output without proper sentence endings.
     # ---------------------------------------------------------
     def generate(
         self,
@@ -114,11 +115,8 @@ class HavocModel(nn.Module):
                 next_logits = logits[:, -1, :] / temperature
                 probs = torch.softmax(next_logits, dim=-1)
 
-                # Force stop selecting "."
-                if tokenizer is not None:
-                    dot_id = tokenizer.encode(".")[0]
-                    probs[:, dot_id] = 0.0
-                    probs = probs / probs.sum(dim=-1, keepdim=True)
+                # CLAUDE_FIX: Removed dot penalty - model should be able to generate periods
+                # The original code zeroed out "." probability which broke sentence structure
 
                 next_token = torch.multinomial(probs, num_samples=1)
                 generated = torch.cat([generated, next_token], dim=1)
@@ -160,11 +158,8 @@ class HavocModel(nn.Module):
         self._gradient_checkpointing = False
 
     def _init_weights(self):
+        # CLAUDE_FIX: Removed duplicate embed_tokens initialization line
         std = self.config.initializer_range
-        nn.init.normal_(self.embed_tokens.weight, mean=0.0, std=std)
-
-
-        nn.init.normal_(self.embed_tokens.weight, mean=0.0, std=std)
 
         for module in self.modules():
             if isinstance(module, nn.Linear):

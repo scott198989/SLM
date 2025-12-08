@@ -1,0 +1,135 @@
+# =============================================================================
+# HAVOC-7B Training Configuration
+# =============================================================================
+#
+# CLAUDE_FIX: Created proper 7B config that works with train.py
+# (After removing the Option-E hard guard)
+#
+# RUNPOD ENVIRONMENT:
+#   - Hardware: AMD MI300X (ROCm) / H100 / RTX 5090
+#   - Repo root: /workspace/SLM
+#   - Dataset root: /workspace/data
+#   - Pretrain corpus: /workspace/data/pretrain
+#   - Tokenizer: /workspace/SLM/artifacts/tokenizer
+#   - Checkpoints: /workspace/SLM/checkpoints/havoc_7b
+#
+# Usage:
+#   python scripts/train.py --config configs/training/havoc_7b_train.yaml
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# MODEL ARCHITECTURE (7B)
+# -----------------------------------------------------------------------------
+model:
+  vocab_size: 70000           # CANONICAL: Must match tokenizer
+  d_model: 4096
+  num_layers: 32
+  max_seq_len: 4096
+
+  attention:
+    num_heads: 32
+    num_kv_heads: 8           # GQA ratio 4:1
+    head_dim: 128             # d_model / num_heads
+    dropout: 0.0
+    rotary_dim: 128
+    rope_theta: 10000.0
+    bias: false
+
+  mlp:
+    hidden_dim: 11008         # ~2.7x expansion for SwiGLU
+    activation: swiglu
+
+  # Regularization
+  dropout: 0.0
+  layer_norm_eps: 1.0e-5
+  initializer_range: 0.02
+
+  # Token IDs - MUST match tokenizer
+  pad_token_id: 0
+  bos_token_id: 1
+  eos_token_id: 2
+
+# -----------------------------------------------------------------------------
+# DATA CONFIGURATION
+# -----------------------------------------------------------------------------
+data:
+  domain_ratio: 0.6
+  general_ratio: 0.3
+  dialog_ratio: 0.1
+  max_sequence_length: 4096
+  samples_per_epoch: 10000
+  pack_sequences: true
+  add_bos: true
+  add_eos: true
+
+tokenizer_path: /workspace/SLM/artifacts/tokenizer
+
+data_sources:
+  - name: pretrain_corpus
+    type: text_directory
+    paths:
+      - /workspace/data/pretrain
+    weight: 1.0
+
+# -----------------------------------------------------------------------------
+# TRAINING HYPERPARAMETERS
+# -----------------------------------------------------------------------------
+
+# Batch configuration
+batch_size: 1                           # Per-device batch size (memory limited)
+gradient_accumulation_steps: 32         # Effective batch = 32
+
+# Training duration
+max_epochs: null                        # Use max_steps for pretraining
+max_steps: 100000
+
+# Optimizer - Conservative for 7B from-scratch
+learning_rate: 3.0e-4                   # Peak LR
+weight_decay: 0.1
+max_grad_norm: 1.0
+
+# Adam optimizer settings
+adam_beta1: 0.9
+adam_beta2: 0.95
+adam_epsilon: 1.0e-8
+
+# Learning rate schedule
+lr_scheduler_type: cosine
+min_learning_rate: 3.0e-5               # 10% of peak LR
+warmup_steps: 2000
+
+# Mixed precision
+use_amp: true
+amp_dtype: bfloat16
+
+# -----------------------------------------------------------------------------
+# CHECKPOINTING
+# -----------------------------------------------------------------------------
+checkpoint_dir: /workspace/SLM/checkpoints/havoc_7b
+save_every_n_steps: 500
+keep_last_n_checkpoints: 5
+resume_from_checkpoint: null
+
+# -----------------------------------------------------------------------------
+# VALIDATION
+# -----------------------------------------------------------------------------
+eval_every_n_steps: 1000
+eval_samples: 200
+log_eval_examples: 2
+example_prompt_length: 128
+example_max_new_tokens: 64
+
+# -----------------------------------------------------------------------------
+# LOGGING
+# -----------------------------------------------------------------------------
+log_every_n_steps: 10
+log_dir: /workspace/SLM/logs/havoc_7b
+log_json_metrics: true
+use_tensorboard: false
+
+# -----------------------------------------------------------------------------
+# DEVICE
+# -----------------------------------------------------------------------------
+device: cuda
+seed: 42

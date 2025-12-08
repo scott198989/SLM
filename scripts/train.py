@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 """
-HAVOC-2B Training Script
+HAVOC Training Script (Supports 2B and 7B)
 
 Usage:
+    # Train 2B model (Option-E):
     python scripts/train.py --config configs/training/default_training.yaml
-    python scripts/train.py --config configs/training/default_training.yaml --resume checkpoints/checkpoint_step_1000
 
-This script is the main entrypoint for training the HAVOC-2B model.
+    # Train 7B model:
+    python scripts/train.py --config configs/training/havoc_7b_train.yaml
+
+    # Resume from checkpoint:
+    python scripts/train.py --config configs/training/havoc_7b_train.yaml --resume checkpoints/havoc_7b/checkpoint_step_1000
+
+CLAUDE_FIX: Updated to support both 2B and 7B architectures.
+The hard Option-E guard has been removed.
 """
 
 from __future__ import annotations
@@ -80,7 +87,7 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
                 paths = [paths]
             ds["paths"] = [_abs(p) for p in paths]
 
-    # --- HARD GUARD FOR HAVOC OPTION-E ARCHITECTURE ---
+    # --- CONFIG VALIDATION (CLAUDE_FIX: Removed hard Option-E guard to allow 7B configs) ---
 
     # Ensure model_config is a HavocConfig instance
     if isinstance(config.model_config, dict):
@@ -125,20 +132,17 @@ def load_config_from_yaml(config_path: str) -> TrainingConfig:
     if mc is None:
         raise ValueError("model_config missing after YAML load")
 
-    # Expected Option-E config:
-    # d_model=2560, num_layers=20, num_heads=32, num_kv_heads=4, mlp.hidden_dim=10240
-    if not (
-        mc.d_model == 2560
-        and mc.num_layers == 20
-        and getattr(mc.attention, "num_heads", None) == 32
-        and getattr(mc.attention, "num_kv_heads", None) == 4
-        and getattr(mc.mlp, "hidden_dim", None) == 10240
-    ):
-        raise ValueError(
-            "Loaded model_config does not match required HAVOC Option-E settings "
-            "(d_model=2560, num_layers=20, num_heads=32, num_kv_heads=4, mlp.hidden_dim=10240). "
-            "Update your YAML/config."
-        )
+    # CLAUDE_FIX: Allow any valid model configuration (2B, 7B, or custom)
+    # Previously this had a hard guard that ONLY allowed Option-E (2B) architecture.
+    # Now we just validate that required fields exist.
+    required_model_fields = ['d_model', 'num_layers', 'vocab_size']
+    for field in required_model_fields:
+        if not hasattr(mc, field) or getattr(mc, field) is None:
+            raise ValueError(f"model_config missing required field: {field}")
+
+    # Log the architecture being used
+    print(f"[train.py] Model architecture: d_model={mc.d_model}, layers={mc.num_layers}, "
+          f"heads={getattr(mc.attention, 'num_heads', 'N/A')}, vocab={mc.vocab_size}")
 
     return config
 
@@ -239,7 +243,7 @@ def create_datasets(config: TrainingConfig):
 
 def main():
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
-    parser = argparse.ArgumentParser(description="Train HAVOC-2B model")
+    parser = argparse.ArgumentParser(description="Train HAVOC model (2B or 7B)")
     parser.add_argument(
         "--config",
         type=str,
@@ -341,7 +345,7 @@ def main():
 
     # Print configuration with resolved paths
     print("\n" + "=" * 80)
-    print("HAVOC-2B Training Configuration")
+    print("HAVOC Training Configuration")
     print("=" * 80)
     print(f"Model: {config.model_config.num_layers} layers, {config.model_config.d_model} d_model")
     print(f"Vocab size: {config.model_config.vocab_size}")
