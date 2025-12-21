@@ -1,12 +1,112 @@
+# HAVOC-7B Data Configuration
+# This config defines data sources and mixture ratios for training
+
+# Mixture configuration
+# Controls the overall distribution of data types
 mixture:
+  # Ratio of domain-specific content (math, stats, engineering)
   domain_ratio: 0.6
+
+  # Ratio of general knowledge content
   general_ratio: 0.3
+
+  # Ratio of dialog/conversational content
   dialog_ratio: 0.1
+
+  # Maximum sequence length (must match model config)
   max_sequence_length: 4096
+
+# Data sources
+# Each source has:
+# - name: Unique identifier
+# - paths: List of file/directory paths
+# - weight: Sampling weight (higher = more likely to sample)
+# - domain: Optional domain tag
+# - file_type: "txt", "jsonl", or "auto" (default: auto)
+# - text_field: For JSONL, which field contains text (default: "text")
+# - metadata_fields: Additional JSONL fields to extract (optional)
+
 sources:
-  - name: domain_text
-    paths: ["/path/to/domain/texts"]
+  # Mathematics domain (high weight)
+  - name: mathematics
+    paths:
+      - data/math/
     weight: 3.0
-  - name: general_text
-    paths: ["/path/to/general/texts"]
+    domain: mathematics
+    file_type: auto
+
+  # Statistics domain (high weight)
+  - name: statistics
+    paths:
+      - data/stats/
+    weight: 3.0
+    domain: statistics
+    file_type: auto
+
+  # Engineering domain (high weight)
+  - name: engineering
+    paths:
+      - data/engineering/
+    weight: 3.0
+    domain: engineering
+    file_type: auto
+
+  # Manufacturing/DOE/SPC domain (medium-high weight)
+  - name: manufacturing
+    paths:
+      - data/manufacturing/
+    weight: 2.0
+    domain: manufacturing
+    file_type: auto
+
+  # General knowledge (medium weight)
+  - name: general
+    paths:
+      - data/general/
+    weight: 2.0
+    domain: general
+    file_type: auto
+
+  # Dialog/conversational (lower weight)
+  - name: dialog
+    paths:
+      - data/dialog/
     weight: 1.0
+    domain: dialog
+    file_type: auto
+
+  # DSL examples (lower weight, specialized)
+  - name: dsl_examples
+    paths:
+      - data/dsl/
+    weight: 0.5
+    domain: dsl
+    file_type: auto
+
+  # Reasoning traces (lower weight, specialized)
+  - name: reasoning_traces
+    paths:
+      - data/reasoning/
+    weight: 0.5
+    domain: reasoning
+    file_type: auto
+
+# Example JSONL source (commented out - enable if you have JSONL data)
+#  - name: arxiv_papers
+#    paths:
+#      - data/arxiv/papers.jsonl
+#    weight: 1.5
+#    domain: scientific
+#    file_type: jsonl
+#    text_field: abstract  # Field containing the text
+#    metadata_fields:
+#      - title
+#      - authors
+#      - categories
+
+# Notes:
+# - Total effective weight: sum of all source weights
+# - Sampling probability for each source = weight / total_weight
+# - With current weights, math/stats/engineering get ~50% of samples
+# - Adjust weights based on your data availability and training goals
+# - Create the data directories and add .txt or .jsonl files to each
